@@ -11,6 +11,48 @@ import BuyinsPanel from "./BuyinsPanel";
 import SettingsPanel from "./SettingsPanel";
 import TimerControls from "./TimerControls";
 import FlashOverlay from "./FlashOverlay";
+import FullscreenButton from "./FullscreenButton";
+import { useEffect, useState } from "react";
+
+function FullscreenLogo() {
+  const [isFullscreen, setIsFullscreen] = useState(
+    !!document.fullscreenElement,
+  );
+
+  useEffect(() => {
+    const onChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+
+    document.addEventListener("fullscreenchange", onChange);
+    return () => document.removeEventListener("fullscreenchange", onChange);
+  }, []);
+
+  return (
+    <div
+      className={`
+      absolute left-1/2 -translate-x-1/2 pointer-events-none
+      transition-all duration-500
+      ${isFullscreen ? "-top-56" : "-top-48"}
+    `}
+    >
+      {/* Inner wrapper owns the 3D transform/animation (does NOT affect centering) */}
+      <div
+        className={`${isFullscreen ? "animate-chipwobble" : ""} chip-3d`}
+        style={{ perspective: "900px" }}
+      >
+        <img
+          src={`${import.meta.env.BASE_URL}images/logo.png`}
+          alt="Club Logo"
+          className={`
+          object-contain transition-all duration-500 ease-out
+          ${isFullscreen ? "h-48 w-48 lg:h-56 lg:w-56" : "h-32 w-32 lg:h-36 lg:w-36"}
+        `}
+        />
+      </div>
+    </div>
+  );
+}
 
 export default function Dashboard({ state, dispatch }) {
   const payoutInfo = computePayouts(state);
@@ -24,7 +66,7 @@ export default function Dashboard({ state, dispatch }) {
 
   return (
     <div
-      className="min-h-screen text-white p-4"
+      className="relative min-h-screen text-white p-4"
       style={{
         background:
           "radial-gradient(circle at center, rgba(255,215,0,0.08) 0%, rgba(0,0,0,0) 55%), radial-gradient(circle at top, rgba(16,185,129,0.12), rgba(3,7,18,1) 70%)",
@@ -46,7 +88,10 @@ export default function Dashboard({ state, dispatch }) {
 
       <div className="grid gap-6 lg:grid-cols-[1fr_2fr_1fr] items-center">
         <div className="flex justify-center">
-          <div className="w-full max-w-sm">
+          <div className="relative w-full max-w-md">
+            {/* Logo positioned above and centered to the prize panel */}
+            <FullscreenLogo />
+
             <PrizePanel payoutInfo={payoutInfo} prizeMode={state.prize.mode} />
           </div>
         </div>
@@ -110,6 +155,8 @@ export default function Dashboard({ state, dispatch }) {
       </div>
 
       <SettingsPanel state={state} dispatch={dispatch} />
+
+      <FullscreenButton />
     </div>
   );
 }
