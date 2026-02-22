@@ -1,3 +1,5 @@
+import { unlockAudio } from "../lib/sound";
+
 function CircleButton({
   children,
   onClick,
@@ -59,7 +61,9 @@ export default function TimerControls({ state, dispatch }) {
               ? "Pause Timer"
               : "Start Timer"
         }
-        onClick={() => {
+        onClick={async () => {
+          await unlockAudio();
+
           if (status === "idle")
             dispatch({ type: "TIMER_START", nowMs: now() });
           else if (status === "running") dispatch({ type: "TIMER_PAUSE" });

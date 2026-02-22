@@ -1,6 +1,12 @@
 import { BLIND_TEMPLATES } from "../app/templates";
 import { computePayouts } from "../app/selectors";
 import NumberInput from "./NumberInput";
+import {
+  unlockAudio,
+  playOneMinuteSound,
+  playBreakSound,
+  playBlindUpSound,
+} from "../lib/sound";
 
 export default function SettingsPanel({ state, dispatch }) {
   const payoutInfo = computePayouts(state);
@@ -13,6 +19,18 @@ export default function SettingsPanel({ state, dispatch }) {
     <div className="fixed right-4 top-16 bottom-4 w-[380px] max-w-[92vw] overflow-auto rounded-2xl border border-amber-400/20 bg-black/80 backdrop-blur p-4">
       <div className="flex items-center justify-between mb-3">
         <div className="font-extrabold text-lg text-amber-200">Settings</div>
+        <button
+          className="px-3 py-2 rounded-lg bg-white/10 hover:bg-white/20 border border-amber-400/15"
+          type="button"
+          onClick={async () => {
+            await unlockAudio();
+            playBlindUpSound();
+            setTimeout(playOneMinuteSound, 400);
+            setTimeout(playBreakSound, 800);
+          }}
+        >
+          Test Sounds
+        </button>
         <button
           className="px-3 py-2 rounded-lg bg-white/10 hover:bg-white/20 border border-amber-400/15"
           onClick={() => dispatch({ type: "TOGGLE_SETTINGS" })}

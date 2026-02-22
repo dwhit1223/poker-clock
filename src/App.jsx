@@ -20,17 +20,22 @@ export default function App() {
     return () => clearInterval(id);
   }, []);
 
-  // audio + auto-clear flash
+  // play transition sound on every transition (reliable)
   useEffect(() => {
-    if (!state.ui.flash) return;
+    if (!state.ui.lastTransitionAt) return;
 
     const current = state.blinds[state.currentRoundIndex];
     if (current?.type === "break") playBreakSound();
     else playBlindUpSound();
+  }, [state.ui.lastTransitionAt, state.currentRoundIndex, state.blinds]);
+
+  // auto-clear flash overlay (visual only)
+  useEffect(() => {
+    if (!state.ui.flash) return;
 
     const t = setTimeout(() => dispatch({ type: "CLEAR_FLASH" }), 2000);
     return () => clearTimeout(t);
-  }, [state.ui.flash, state.currentRoundIndex, state.blinds]);
+  }, [state.ui.flash]);
 
   // 1-minute warning sound (fires once per round)
   useEffect(() => {
