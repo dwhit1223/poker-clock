@@ -104,6 +104,7 @@ export default function SettingsPanel({ state, dispatch }) {
             onChange={(e) =>
               dispatch({ type: "SET_DEALER_PAY", value: e.target.value })
             }
+            onFocus={(e) => e.target.select()}
           />
 
           <label className="text-sm opacity-80">Bounty Pay ($)</label>
@@ -114,6 +115,7 @@ export default function SettingsPanel({ state, dispatch }) {
             onChange={(e) =>
               dispatch({ type: "SET_BOUNTY_PAY", value: e.target.value })
             }
+            onFocus={(e) => e.target.select()}
           />
 
           <label className="text-sm opacity-80">Mode</label>
