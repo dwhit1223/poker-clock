@@ -1,5 +1,6 @@
 import { BLIND_TEMPLATES } from "../app/templates";
 import { computePayouts } from "../app/selectors";
+import NumberInput from "./NumberInput";
 
 export default function SettingsPanel({ state, dispatch }) {
   const payoutInfo = computePayouts(state);
@@ -27,23 +28,23 @@ export default function SettingsPanel({ state, dispatch }) {
             Buy-in & Rebuy Values
           </div>
           <label className="text-sm opacity-80">Buy-in ($)</label>
-          <input
+          <NumberInput
             className="w-full rounded-lg bg-white/10 border border-amber-400/15 p-2"
-            type="number"
             value={state.buyInValue}
-            onChange={(e) =>
-              dispatch({ type: "SET_BUYIN_VALUE", value: e.target.value })
-            }
+            onChange={(v) => dispatch({ type: "SET_BUYIN_VALUE", value: v })}
+            min={0}
+            step={1}
+            ariaLabel="Buy-in value"
           />
 
           <label className="text-sm opacity-80">Rebuy ($)</label>
-          <input
+          <NumberInput
             className="w-full rounded-lg bg-white/10 border border-amber-400/15 p-2"
-            type="number"
             value={state.rebuyValue}
-            onChange={(e) =>
-              dispatch({ type: "SET_REBUY_VALUE", value: e.target.value })
-            }
+            onChange={(v) => dispatch({ type: "SET_REBUY_VALUE", value: v })}
+            min={0}
+            step={1}
+            ariaLabel="Rebuy value"
           />
         </section>
 
@@ -97,25 +98,23 @@ export default function SettingsPanel({ state, dispatch }) {
           </div>
 
           <label className="text-sm opacity-80">Dealer Pay ($)</label>
-          <input
+          <NumberInput
             className="w-full rounded-lg bg-white/10 border border-amber-400/15 p-2"
-            type="number"
             value={state.prize.dealerPay}
-            onChange={(e) =>
-              dispatch({ type: "SET_DEALER_PAY", value: e.target.value })
-            }
-            onFocus={(e) => e.target.select()}
+            onChange={(v) => dispatch({ type: "SET_DEALER_PAY", value: v })}
+            min={0}
+            step={1}
+            ariaLabel="Dealer pay"
           />
 
           <label className="text-sm opacity-80">Bounty Pay ($)</label>
-          <input
+          <NumberInput
             className="w-full rounded-lg bg-white/10 border border-amber-400/15 p-2"
-            type="number"
             value={state.prize.bountyPay}
-            onChange={(e) =>
-              dispatch({ type: "SET_BOUNTY_PAY", value: e.target.value })
-            }
-            onFocus={(e) => e.target.select()}
+            onChange={(v) => dispatch({ type: "SET_BOUNTY_PAY", value: v })}
+            min={0}
+            step={1}
+            ariaLabel="Bounty pay"
           />
 
           <label className="text-sm opacity-80">Mode</label>
@@ -210,6 +209,7 @@ export default function SettingsPanel({ state, dispatch }) {
                             patch: { label: e.target.value },
                           })
                         }
+                        onFocus={(e) => e.target.select()}
                         disabled={isLockedLast}
                       />
                     </div>
@@ -218,17 +218,19 @@ export default function SettingsPanel({ state, dispatch }) {
                       <label className="text-xs opacity-70">
                         {p.type === "fixed" ? "Amount ($)" : "Percent (%)"}
                       </label>
-                      <input
+                      <NumberInput
                         className="w-full rounded bg-white/10 border border-amber-400/15 p-1"
-                        type="number"
                         value={p.value}
-                        onChange={(e) =>
+                        onChange={(v) =>
                           dispatch({
                             type: "UPDATE_PRIZE_PLACE",
                             index: i,
-                            patch: { value: Number(e.target.value) || 0 },
+                            patch: { value: Number(v) || 0 },
                           })
                         }
+                        min={0}
+                        step={1}
+                        ariaLabel={`${p.label || `Place ${i + 1}`} value`}
                       />
                     </div>
                   </div>
@@ -348,52 +350,55 @@ export default function SettingsPanel({ state, dispatch }) {
                   <div className="grid grid-cols-3 gap-2 mt-2">
                     <div>
                       <label className="text-xs opacity-70">Small</label>
-                      <input
+                      <NumberInput
                         className="w-full rounded bg-white/10 border border-amber-400/15 p-1"
-                        type="number"
                         value={r.small}
-                        onChange={(e) =>
+                        onChange={(v) =>
                           dispatch({
                             type: "UPDATE_ROUND",
                             index: i,
-                            patch: { small: onNum(e.target.value) },
+                            patch: { small: onNum(v) },
                           })
                         }
+                        min={0}
+                        step={1}
+                        ariaLabel={`Round ${i + 1} small blind`}
                       />
                     </div>
 
                     <div>
                       <label className="text-xs opacity-70">Big</label>
-                      <input
+                      <NumberInput
                         className="w-full rounded bg-white/10 border border-amber-400/15 p-1"
-                        type="number"
                         value={r.big}
-                        onChange={(e) =>
+                        onChange={(v) =>
                           dispatch({
                             type: "UPDATE_ROUND",
                             index: i,
-                            patch: { big: onNum(e.target.value) },
+                            patch: { big: onNum(v) },
                           })
                         }
+                        min={0}
+                        step={1}
+                        ariaLabel={`Round ${i + 1} big blind`}
                       />
                     </div>
 
                     <div>
                       <label className="text-xs opacity-70">Min</label>
-                      <input
+                      <NumberInput
                         className="w-full rounded bg-white/10 border border-amber-400/15 p-1"
-                        type="number"
                         value={Math.round(r.durationSec / 60)}
-                        onChange={(e) =>
+                        onChange={(v) =>
                           dispatch({
                             type: "UPDATE_ROUND",
                             index: i,
-                            patch: {
-                              durationSec:
-                                Math.max(0, onNum(e.target.value)) * 60,
-                            },
+                            patch: { durationSec: Math.max(0, onNum(v)) * 60 },
                           })
                         }
+                        min={0}
+                        step={1}
+                        ariaLabel={`Round ${i + 1} minutes`}
                       />
                     </div>
                   </div>
@@ -403,20 +408,19 @@ export default function SettingsPanel({ state, dispatch }) {
                       <label className="text-xs opacity-70">
                         Break Minutes
                       </label>
-                      <input
+                      <NumberInput
                         className="w-full rounded bg-white/10 border border-amber-400/15 p-1"
-                        type="number"
                         value={Math.round(r.durationSec / 60)}
-                        onChange={(e) =>
+                        onChange={(v) =>
                           dispatch({
                             type: "UPDATE_ROUND",
                             index: i,
-                            patch: {
-                              durationSec:
-                                Math.max(0, onNum(e.target.value)) * 60,
-                            },
+                            patch: { durationSec: Math.max(0, onNum(v)) * 60 },
                           })
                         }
+                        min={0}
+                        step={1}
+                        ariaLabel={`Break after round ${i + 1} minutes`}
                       />
                     </div>
                   </div>
