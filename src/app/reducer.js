@@ -10,6 +10,12 @@ export function reducer(state, action) {
     case "SET_TITLE":
       return { ...state, title: action.title };
 
+    case "SET_LOGO_DATA_URL":
+      return { ...state, logoDataUrl: action.dataUrl || null };
+
+    case "CLEAR_LOGO":
+      return { ...state, logoDataUrl: null };
+
     // Buy-ins / rebuys
     case "INC_BUYIN":
       return { ...state, buyIns: state.buyIns + 1 };
@@ -407,6 +413,77 @@ export function reducer(state, action) {
 
     case "CLEAR_FLASH":
       return { ...state, ui: { ...state.ui, flash: false } };
+
+    case "EXPORT_CONFIG": {
+      // Only export configuration, not runtime timer state
+      const config = {
+        title: state.title,
+        logoDataUrl: state.logoDataUrl ?? null,
+        buyInValue: state.buyInValue,
+        rebuyValue: state.rebuyValue,
+        prize: state.prize,
+        blinds: state.blinds,
+      };
+
+      const blob = new Blob([JSON.stringify(config, null, 2)], {
+        type: "application/json",
+      });
+
+      const url = URL.createObjectURL(blob);
+
+      const a = document.createElement("a");
+      a.href = url;
+
+      const safeTitle = state.title.replace(/[^a-z0-9]/gi, "_").toLowerCase();
+
+      a.download = `${safeTitle || "poker_clock"}_config.json`;
+
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+
+      URL.revokeObjectURL(url);
+
+      return state;
+    }
+
+    case "IMPORT_CONFIG": {
+      const config = action.config;
+
+      if (!config) return state;
+
+      const firstRound = config.blinds?.[0];
+
+      return {
+        ...state,
+
+        title: config.title ?? state.title,
+        logoDataUrl: config.logoDataUrl ?? null,
+
+        buyInValue: config.buyInValue ?? state.buyInValue,
+        rebuyValue: config.rebuyValue ?? state.rebuyValue,
+
+        prize: config.prize ?? state.prize,
+
+        blinds: config.blinds ?? state.blinds,
+
+        // reset runtime state safely
+        currentRoundIndex: 0,
+
+        timer: {
+          status: "idle",
+          remainingSec: firstRound?.durationSec ?? 0,
+          lastTickMs: null,
+        },
+
+        ui: {
+          ...state.ui,
+          flash: false,
+          lastTransitionAt: null,
+          oneMinuteWarnedRoundIndex: null,
+        },
+      };
+    }
 
     default:
       return state;

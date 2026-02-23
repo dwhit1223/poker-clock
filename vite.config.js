@@ -5,7 +5,7 @@ import react from "@vitejs/plugin-react";
 // If your repo is https://github.com/<you>/<repo>, set base to "/<repo>/"
 export default defineConfig({
   plugins: [react()],
-  base: "/poker-clock/",
+  base: process.env.VITE_BASE ?? "/poker-clock/",
   test: {
     environment: "jsdom",
     setupFiles: "./src/test/setup.js",

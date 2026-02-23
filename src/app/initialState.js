@@ -5,6 +5,7 @@ export function createInitialState() {
 
   return {
     title: "Deuces Poker Tournament",
+    logoDataUrl: null, // Pro: uploaded logo (data URL). null = use default public/images/logo.png
 
     buyInValue: 40,
     rebuyValue: 40,

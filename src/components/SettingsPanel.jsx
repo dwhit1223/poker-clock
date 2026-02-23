@@ -26,7 +26,7 @@ export default function SettingsPanel({ state, dispatch }) {
             await unlockAudio();
             playBlindUpSound();
             setTimeout(playOneMinuteSound, 400);
-            setTimeout(playBreakSound, 800);
+            setTimeout(playBreakSound, 2800);
           }}
         >
           Test Sounds
@@ -64,6 +64,100 @@ export default function SettingsPanel({ state, dispatch }) {
             step={1}
             ariaLabel="Rebuy value"
           />
+        </section>
+
+        <section className="space-y-2">
+          <div className="font-semibold text-amber-100">Branding (Pro)</div>
+
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              className="px-3 py-2 rounded-lg bg-white/10 hover:bg-white/20 border border-amber-400/15"
+              type="button"
+              onClick={() => {
+                const input = document.createElement("input");
+                input.type = "file";
+                input.accept = "image/*";
+
+                input.onchange = async (e) => {
+                  const file = e.target.files?.[0];
+                  if (!file) return;
+
+                  // Optional: keep uploads reasonable
+                  const maxBytes = 2 * 1024 * 1024; // 2MB
+                  if (file.size > maxBytes) {
+                    alert(
+                      "Logo file too large. Please use an image under 2MB.",
+                    );
+                    return;
+                  }
+
+                  const reader = new FileReader();
+                  reader.onload = () => {
+                    dispatch({
+                      type: "SET_LOGO_DATA_URL",
+                      dataUrl: reader.result,
+                    });
+                  };
+                  reader.readAsDataURL(file);
+                };
+
+                input.click();
+              }}
+            >
+              Upload Logo
+            </button>
+
+            <button
+              className="px-3 py-2 rounded-lg bg-white/10 hover:bg-white/20 border border-amber-400/15"
+              type="button"
+              onClick={() => dispatch({ type: "CLEAR_LOGO" })}
+              disabled={!state.logoDataUrl}
+              title={
+                !state.logoDataUrl ? "No uploaded logo to clear" : "Clear logo"
+              }
+            >
+              Use Default
+            </button>
+          </div>
+
+          <div className="mt-2 rounded-xl border border-amber-400/10 bg-white/5 p-3">
+            <div className="text-xs opacity-70 mb-2">Current logo</div>
+
+            <div className="flex items-center gap-3">
+              <img
+                src={
+                  state.logoDataUrl ||
+                  `${import.meta.env.BASE_URL}images/logo.png`
+                }
+                alt="Logo preview"
+                className="h-16 w-16 rounded-full object-contain bg-black/30 border border-amber-400/10"
+              />
+
+              <div className="text-xs opacity-60 leading-snug">
+                {state.logoDataUrl ? (
+                  <>
+                    Using{" "}
+                    <span className="text-amber-200 font-semibold">
+                      uploaded
+                    </span>{" "}
+                    logo (saved in config)
+                  </>
+                ) : (
+                  <>
+                    Using{" "}
+                    <span className="text-amber-200 font-semibold">
+                      default
+                    </span>{" "}
+                    logo
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div className="text-xs opacity-60">
+            Upload a PNG/SVG/JPG. Recommended: square image (512×512).
+          </div>
         </section>
 
         <section className="space-y-2">
@@ -448,6 +542,50 @@ export default function SettingsPanel({ state, dispatch }) {
           </div>
         </section>
       </div>
+      <section className="space-y-2">
+        <div className="font-semibold text-amber-100">Configuration</div>
+
+        <div className="grid grid-cols-2 gap-2">
+          <button
+            className="px-3 py-2 rounded-lg bg-white/10 hover:bg-white/20 border border-amber-400/15"
+            onClick={() => dispatch({ type: "EXPORT_CONFIG" })}
+            type="button"
+          >
+            Save Config
+          </button>
+
+          <button
+            className="px-3 py-2 rounded-lg bg-white/10 hover:bg-white/20 border border-amber-400/15"
+            onClick={() => {
+              const input = document.createElement("input");
+              input.type = "file";
+              input.accept = "application/json";
+
+              input.onchange = async (e) => {
+                const file = e.target.files?.[0];
+                if (!file) return;
+
+                try {
+                  const text = await file.text();
+                  const config = JSON.parse(text);
+
+                  dispatch({
+                    type: "IMPORT_CONFIG",
+                    config,
+                  });
+                } catch {
+                  alert("Invalid config file");
+                }
+              };
+
+              input.click();
+            }}
+            type="button"
+          >
+            Load Config
+          </button>
+        </div>
+      </section>
     </div>
   );
 }

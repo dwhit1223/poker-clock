@@ -14,7 +14,7 @@ import FlashOverlay from "./FlashOverlay";
 import FullscreenButton from "./FullscreenButton";
 import { useEffect, useState } from "react";
 
-function FullscreenLogo() {
+function FullscreenLogo({ src }) {
   const [isFullscreen, setIsFullscreen] = useState(
     !!document.fullscreenElement,
   );
@@ -42,7 +42,7 @@ function FullscreenLogo() {
         style={{ perspective: "900px" }}
       >
         <img
-          src={`${import.meta.env.BASE_URL}images/logo.png`}
+          src={src}
           alt="Club Logo"
           className={`
           object-contain transition-all duration-500 ease-out
@@ -91,7 +91,12 @@ export default function Dashboard({ state, dispatch }) {
           {/* Left column */}
           <div className="flex justify-center">
             <div className="relative w-full max-w-md">
-              <FullscreenLogo />
+              <FullscreenLogo
+                src={
+                  state.logoDataUrl ||
+                  `${import.meta.env.BASE_URL}images/logo.png`
+                }
+              />
 
               <PrizePanel
                 payoutInfo={payoutInfo}
