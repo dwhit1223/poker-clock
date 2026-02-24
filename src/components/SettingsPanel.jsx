@@ -20,9 +20,6 @@ export default function SettingsPanel({ state, dispatch }) {
   return (
     <div className="fixed right-4 top-16 bottom-4 w-[380px] max-w-[92vw] overflow-auto rounded-2xl border border-amber-400/20 bg-black/80 backdrop-blur p-4">
       <div className="flex items-center justify-between mb-3">
-        <div className="text-xs text-amber-300 mb-2">
-          PRO_ENABLED: {String(PRO_ENABLED)}
-        </div>
         <div className="flex items-center gap-2">
           <div className="font-extrabold text-lg text-amber-200">Settings</div>
 
