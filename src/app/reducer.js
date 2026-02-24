@@ -1,3 +1,5 @@
+import { PRO_ENABLED } from "./pro";
+
 export function reducer(state, action) {
   switch (action.type) {
     // UI
@@ -11,10 +13,20 @@ export function reducer(state, action) {
       return { ...state, title: action.title };
 
     case "SET_LOGO_DATA_URL":
-      return { ...state, logoDataUrl: action.dataUrl || null };
+      if (!PRO_ENABLED) return state;
+
+      return {
+        ...state,
+        logoDataUrl: action.dataUrl || null,
+      };
 
     case "CLEAR_LOGO":
-      return { ...state, logoDataUrl: null };
+      if (!PRO_ENABLED) return state;
+
+      return {
+        ...state,
+        logoDataUrl: null,
+      };
 
     // Buy-ins / rebuys
     case "INC_BUYIN":
@@ -444,7 +456,7 @@ export function reducer(state, action) {
 
       URL.revokeObjectURL(url);
 
-      return state;
+      if (!PRO_ENABLED) return state;
     }
 
     case "IMPORT_CONFIG": {
@@ -486,6 +498,6 @@ export function reducer(state, action) {
     }
 
     default:
-      return state;
+      if (!PRO_ENABLED) return state;
   }
 }

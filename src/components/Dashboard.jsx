@@ -13,6 +13,7 @@ import TimerControls from "./TimerControls";
 import FlashOverlay from "./FlashOverlay";
 import FullscreenButton from "./FullscreenButton";
 import { useEffect, useState } from "react";
+import { PRO_ENABLED } from "../app/pro";
 
 function FullscreenLogo({ src }) {
   const [isFullscreen, setIsFullscreen] = useState(
@@ -93,8 +94,9 @@ export default function Dashboard({ state, dispatch }) {
             <div className="relative w-full max-w-md">
               <FullscreenLogo
                 src={
-                  state.logoDataUrl ||
-                  `${import.meta.env.BASE_URL}images/logo.png`
+                  PRO_ENABLED && state.logoDataUrl
+                    ? state.logoDataUrl
+                    : `${import.meta.env.BASE_URL}images/logo.png`
                 }
               />
 
