@@ -1,19 +1,17 @@
 {
   "name": "poker-clock",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
     "test": "vitest",
-    "build:offline": "vite build --base=./",
-    "build:pages": "vite build",
     "build:zip:free": "cross-env VITE_BASE=./ VITE_PRO=false vite build",
     "build:zip:pro": "cross-env VITE_BASE=./ VITE_PRO=true vite build",
-    "build:pages:free": "cross-env VITE_PRO=false VITE_BASE=/poker-clock/ vite build",
-    "build:pages:pro": "cross-env VITE_PRO=true VITE_BASE=/poker-clock/ vite build"
+    "build:pages:free": "cross-env VITE_BASE=/poker-clock/ VITE_PRO=false vite build",
+    "build:pages:pro": "cross-env VITE_BASE=/poker-clock/ VITE_PRO=true vite build"
   },
   "dependencies": {
     "react": "^18.3.1",
@@ -25,7 +23,6 @@
     "@vitejs/plugin-react": "^4.3.1",
     "autoprefixer": "^10.4.20",
     "cross-env": "^10.1.0",
-    "gh-pages": "^6.3.0",
     "jsdom": "^25.0.1",
     "postcss": "^8.4.41",
     "tailwindcss": "^3.4.10",
