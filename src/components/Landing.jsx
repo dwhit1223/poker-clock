@@ -11,19 +11,15 @@ export default function Landing() {
       }}
     >
       {/* Top bar */}
-      <div className="max-w-6xl mx-auto px-5 pt-6 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="h-10 w-10 rounded-full bg-amber-400/15 border border-amber-300/30 flex items-center justify-center font-black text-amber-200">
-            PC
-          </div>
-          <div>
-            <div className="font-extrabold font-display tracking-wide text-amber-200">
-              Poker Clock Pro
-            </div>
-            <div className="text-xs opacity-60">
-              Tournament clock for live games
-            </div>
-          </div>
+      <div className="max-w-6xl mx-auto px-5 pt-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="flex flex-col items-end">
+          <a href={base} className="block">
+            <img
+              src="/images/logo-horizontal.png"
+              alt="Poker Clock Pro"
+              className="h-20 sm:h-24 md:h-32 w-auto"
+            />
+          </a>
         </div>
 
         <div className="flex items-center gap-3">

@@ -31,13 +31,11 @@ function FullscreenLogo({ src }) {
 
   return (
     <div
-      className={`
-      absolute left-1/2 -translate-x-1/2 pointer-events-none
+      className="
+      absolute left-1/2 -translate-x-1/2 bottom-full mb-6 pointer-events-none
       transition-all duration-500
-      ${isFullscreen ? "-top-56" : "-top-48"}
-    `}
+    "
     >
-      {/* Inner wrapper owns the 3D transform/animation (does NOT affect centering) */}
       <div
         className={`${isFullscreen ? "animate-chipwobble" : ""} chip-3d`}
         style={{ perspective: "900px" }}
@@ -46,8 +44,8 @@ function FullscreenLogo({ src }) {
           src={src}
           alt="Club Logo"
           className={`
-          object-contain transition-all duration-500 ease-out
-          ${isFullscreen ? "h-48 w-48 lg:h-56 lg:w-56" : "h-32 w-32 lg:h-36 lg:w-36"}
+          object-contain shrink-0 transition-all duration-500 ease-out
+          ${isFullscreen ? "h-64 w-64 lg:h-72 lg:w-72" : "h-44 w-44 lg:h-52 lg:w-52"}
         `}
         />
       </div>
