@@ -66,7 +66,8 @@ export default function TimerControls({ state, dispatch }) {
 
           if (status === "idle")
             dispatch({ type: "TIMER_START", nowMs: now() });
-          else if (status === "running") dispatch({ type: "TIMER_PAUSE" });
+          else if (status === "running")
+            dispatch({ type: "TIMER_PAUSE", nowMs: now() });
           else if (status === "paused")
             dispatch({ type: "TIMER_RESUME", nowMs: now() });
         }}

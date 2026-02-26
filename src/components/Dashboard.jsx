@@ -63,6 +63,16 @@ export default function Dashboard({ state, dispatch }) {
     !isBreak && current ? `${current.small} / ${current.big}` : "BREAK";
   const nextBlinds = nextBlind ? `${nextBlind.small} / ${nextBlind.big}` : "—";
 
+  useEffect(() => {
+    if (state.timer.status !== "running") return;
+
+    const id = setInterval(() => {
+      dispatch({ type: "TIMER_TICK", nowMs: Date.now() });
+    }, 250); // update 4x/sec for accuracy and smooth display
+
+    return () => clearInterval(id);
+  }, [state.timer.status, dispatch]);
+
   return (
     <div
       className="relative h-screen w-screen text-white p-4 flex flex-col"

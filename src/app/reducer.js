@@ -279,23 +279,49 @@ export function reducer(state, action) {
     }
 
     // Timer controls
-    case "TIMER_START":
+    case "TIMER_START": {
       return {
         ...state,
-        timer: { ...state.timer, status: "running", lastTickMs: action.nowMs },
+        timer: {
+          ...state.timer,
+          status: "running",
+          endsAtMs: action.nowMs + state.timer.remainingSec * 1000,
+        },
       };
+    }
 
-    case "TIMER_PAUSE":
-      return {
-        ...state,
-        timer: { ...state.timer, status: "paused", lastTickMs: null },
-      };
+    case "TIMER_PAUSE": {
+      if (state.timer.status !== "running" || !state.timer.endsAtMs) {
+        return {
+          ...state,
+          timer: { ...state.timer, status: "paused", endsAtMs: null },
+        };
+      }
 
-    case "TIMER_RESUME":
+      const remainingMs = state.timer.endsAtMs - (action.nowMs ?? Date.now());
+      const remainingSec = Math.max(0, Math.ceil(remainingMs / 1000));
+
       return {
         ...state,
-        timer: { ...state.timer, status: "running", lastTickMs: action.nowMs },
+        timer: {
+          ...state.timer,
+          status: "paused",
+          endsAtMs: null,
+          remainingSec,
+        },
       };
+    }
+
+    case "TIMER_RESUME": {
+      return {
+        ...state,
+        timer: {
+          ...state.timer,
+          status: "running",
+          endsAtMs: action.nowMs + state.timer.remainingSec * 1000,
+        },
+      };
+    }
 
     case "TIMER_RESET": {
       const firstRound = state.blinds[0];
@@ -327,68 +353,154 @@ export function reducer(state, action) {
       };
     }
 
-    case "NEXT_LEVEL_NOW": {
+    case "TIMER_SYNC": {
+      if (state.timer.status !== "running" || !state.timer.endsAtMs)
+        return state;
+
+      const nowMs = action.nowMs ?? Date.now();
+      const remainingMs = state.timer.endsAtMs - nowMs;
+      const remainingSec = Math.max(0, Math.ceil(remainingMs / 1000));
+
+      if (remainingSec > 0) {
+        if (remainingSec === state.timer.remainingSec) return state;
+        return { ...state, timer: { ...state.timer, remainingSec } };
+      }
+
+      // remainingSec is 0 → advance if possible
       const idx = state.currentRoundIndex;
-      if (idx >= state.blinds.length - 1) return state;
+      if (idx >= state.blinds.length - 1) {
+        return {
+          ...state,
+          timer: {
+            ...state.timer,
+            remainingSec: 0,
+            status: "finished",
+            endsAtMs: null,
+          },
+        };
+      }
 
       const nextIndex = idx + 1;
       const next = state.blinds[nextIndex];
+      const nextDurationSec = next?.durationSec ?? 0;
 
       return {
         ...state,
         currentRoundIndex: nextIndex,
         timer: {
           ...state.timer,
-          remainingSec: next?.durationSec ?? 0,
-          lastTickMs: state.timer.status === "running" ? action.nowMs : null,
+          remainingSec: nextDurationSec,
+          // keep running and set new end time
+          endsAtMs: nowMs + nextDurationSec * 1000,
         },
         ui: {
           ...state.ui,
           flash: true,
-          lastTransitionAt: action.nowMs,
+          lastTransitionAt: nowMs,
+          oneMinuteWarnedRoundIndex: null,
+        },
+      };
+    }
+
+    case "NEXT_LEVEL_NOW": {
+      const idx = state.currentRoundIndex;
+      if (idx >= state.blinds.length - 1) return state;
+
+      const nextIndex = idx + 1;
+      const next = state.blinds[nextIndex];
+      const nextDurationSec = next?.durationSec ?? 0;
+
+      const willRun = state.timer.status === "running";
+      const nowMs = action.nowMs ?? Date.now();
+
+      return {
+        ...state,
+        currentRoundIndex: nextIndex,
+        timer: {
+          ...state.timer,
+          remainingSec: nextDurationSec,
+          endsAtMs: willRun ? nowMs + nextDurationSec * 1000 : null,
+          // if you keep status unchanged, it remains running/paused/etc.
+        },
+        ui: {
+          ...state.ui,
+          flash: true,
+          lastTransitionAt: nowMs,
           oneMinuteWarnedRoundIndex: null,
         },
       };
     }
 
     case "TIMER_TICK": {
-      if (state.timer.status !== "running") return state;
+      if (state.timer.status !== "running" || !state.timer.endsAtMs)
+        return state;
 
-      const last = state.timer.lastTickMs ?? action.nowMs;
-      const elapsedSec = Math.floor((action.nowMs - last) / 1000);
-      if (elapsedSec <= 0) return state;
+      const nowMs = action.nowMs ?? Date.now();
 
-      let remaining = state.timer.remainingSec - elapsedSec;
+      // Compute remaining time in the CURRENT round from the end timestamp.
+      let remaining = Math.max(
+        0,
+        Math.ceil((state.timer.endsAtMs - nowMs) / 1000),
+      );
+
       let idx = state.currentRoundIndex;
       let transitioned = false;
 
+      // If time is up, advance through rounds (handles large time jumps cleanly)
       while (remaining <= 0 && idx < state.blinds.length - 1) {
         idx += 1;
-        remaining += state.blinds[idx].durationSec;
+        const dur = state.blinds[idx]?.durationSec ?? 0;
+
+        // Start next round immediately from "now"
+        remaining = dur;
         transitioned = true;
+
+        // Set a new end time for the new current round
+        // (If you want the next round to start exactly at the boundary rather than "now",
+        // you can carry over negative remainder, but for accuracy + simplicity "now" is best.)
       }
 
+      // Finished the last round
       if (remaining <= 0 && idx === state.blinds.length - 1) {
         return {
           ...state,
           currentRoundIndex: idx,
-          timer: { status: "finished", remainingSec: 0, lastTickMs: null },
-          ui: { ...state.ui, flash: true, lastTransitionAt: action.nowMs },
+          timer: {
+            ...state.timer,
+            status: "finished",
+            remainingSec: 0,
+            endsAtMs: null,
+          },
+          ui: { ...state.ui, flash: true, lastTransitionAt: nowMs },
         };
       }
 
-      // Fire 1-minute warning once per round when crossing <= 60 seconds
+      // If we transitioned, reset the endsAtMs for the new round based on nowMs.
+      const effectiveEndsAtMs = transitioned
+        ? nowMs + remaining * 1000
+        : state.timer.endsAtMs;
+
+      // ---- 1-minute warning logic (same as yours, but based on computed remaining) ----
       const currentRound = state.blinds[idx];
       const alreadyWarned = state.ui.oneMinuteWarnedRoundIndex === idx;
 
-      const prevRemaining = state.timer.remainingSec; // before this tick
+      const prevRemaining = state.timer.remainingSec; // value from previous render/tick
       const crossedOneMinute = prevRemaining > 60 && remaining <= 60;
 
       const shouldWarn =
-        !transitioned && // if we transitioned this tick, don't also warn
+        !transitioned &&
         currentRound?.type === "blind" &&
         !alreadyWarned &&
         crossedOneMinute;
+
+      // Avoid re-render spam when nothing changes
+      if (
+        !transitioned &&
+        !shouldWarn &&
+        remaining === state.timer.remainingSec
+      ) {
+        return state;
+      }
 
       return {
         ...state,
@@ -396,20 +508,17 @@ export function reducer(state, action) {
         timer: {
           ...state.timer,
           remainingSec: remaining,
-          lastTickMs: action.nowMs,
+          endsAtMs: effectiveEndsAtMs,
         },
         ui: transitioned
           ? {
               ...state.ui,
               flash: true,
-              lastTransitionAt: action.nowMs,
+              lastTransitionAt: nowMs,
               oneMinuteWarnedRoundIndex: null,
             }
           : shouldWarn
-            ? {
-                ...state.ui,
-                oneMinuteWarnedRoundIndex: idx,
-              }
+            ? { ...state.ui, oneMinuteWarnedRoundIndex: idx }
             : state.ui,
       };
     }
