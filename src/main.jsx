@@ -15,18 +15,6 @@ function getRelativePath() {
   return path || "/";
 }
 
-const entry = import.meta.env.VITE_ENTRY || "landing";
-const relPath = getRelativePath();
-console.log("BASE_URL", import.meta.env.BASE_URL);
-console.log("pathname", window.location.pathname);
-console.log("relPath", relPath);
-console.log("landingPage", getLandingPage(relPath));
-console.log("showApp", showApp);
-
-// In PRO builds, always show the app at "/"
-const showApp =
-  entry === "pro" ? true : relPath === "/demo" || relPath.startsWith("/demo/");
-
 // Simple path → page mapping (no React Router)
 function getLandingPage(pathname) {
   // normalize: remove trailing slash except root
@@ -34,6 +22,10 @@ function getLandingPage(pathname) {
     pathname.length > 1 && pathname.endsWith("/")
       ? pathname.slice(0, -1)
       : pathname;
+
+  // Optional robustness (uncomment if you want):
+  // const withoutHtml = normalized.replace(/\.html$/i, "");
+  // const p = withoutHtml.toLowerCase();
 
   const p = normalized.toLowerCase();
 
@@ -47,7 +39,21 @@ function getLandingPage(pathname) {
   return "notfound";
 }
 
+const entry = import.meta.env.VITE_ENTRY || "landing";
+const relPath = getRelativePath();
+
+// In PRO builds, always show the app at "/"
+const showApp =
+  entry === "pro" ? true : relPath === "/demo" || relPath.startsWith("/demo/");
+
 const landingPage = getLandingPage(relPath);
+
+// Debug logs (safe here)
+console.log("BASE_URL", import.meta.env.BASE_URL);
+console.log("pathname", window.location.pathname);
+console.log("relPath", relPath);
+console.log("landingPage", landingPage);
+console.log("showApp", showApp);
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
