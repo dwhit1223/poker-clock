@@ -108,20 +108,6 @@ export default function SettingsPanel({ state, dispatch }) {
           <button
             className={buttonClass}
             style={{ border: softBorder }}
-            type="button"
-            onClick={async () => {
-              await unlockAudio();
-              playBlindUpSound();
-              setTimeout(playOneMinuteSound, 400);
-              setTimeout(playBreakSound, 2800);
-            }}
-          >
-            Test Sounds
-          </button>
-
-          <button
-            className={buttonClass}
-            style={{ border: softBorder }}
             onClick={() => dispatch({ type: "TOGGLE_SETTINGS" })}
             type="button"
           >
