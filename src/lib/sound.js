@@ -1,6 +1,25 @@
 const BASE_URL = import.meta.env.BASE_URL || "/";
 const soundUrl = (file) => `${BASE_URL}sounds/${file}`;
 
+// --- PRO override support ---
+// These should be data URLs (or any valid URL). Keys match state.sounds keys.
+let SOUND_OVERRIDES = {
+  blindUpUrl: null,
+  breakUrl: null,
+  oneMinuteUrl: null,
+};
+
+export function setSoundOverrides(overrides) {
+  SOUND_OVERRIDES = {
+    ...SOUND_OVERRIDES,
+    ...(overrides || {}),
+  };
+}
+
+function getSoundPath(key, fallbackFile) {
+  return SOUND_OVERRIDES?.[key] || soundUrl(fallbackFile);
+}
+
 function beep({
   freq = 880,
   durationMs = 180,
@@ -80,17 +99,20 @@ export async function unlockAudio() {
 
 // Current sounds (beeps now, easy swap later)
 export function playBlindUpSound() {
-  if (USE_AUDIO_FILES) return playFile(soundUrl("blind-up.mp3"));
+  if (USE_AUDIO_FILES)
+    return playFile(getSoundPath("blindUpUrl", "blind-up.mp3"));
   beep({ freq: 880, durationMs: 180, gain: 0.05, type: "square" });
 }
 
 export function playBreakSound() {
-  if (USE_AUDIO_FILES) return playFile(soundUrl("on-break.mp3"));
+  if (USE_AUDIO_FILES)
+    return playFile(getSoundPath("breakUrl", "on-break.mp3"));
   beep({ freq: 440, durationMs: 260, gain: 0.045, type: "sine" });
 }
 
 export function playOneMinuteSound() {
-  if (USE_AUDIO_FILES) return playFile(soundUrl("one-minute.mp3"));
+  if (USE_AUDIO_FILES)
+    return playFile(getSoundPath("oneMinuteUrl", "one-minute.mp3"));
   // a distinct "warning" double-beep
   beep({ freq: 660, durationMs: 140, gain: 0.05, type: "square" });
   setTimeout(

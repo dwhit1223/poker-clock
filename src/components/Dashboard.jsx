@@ -14,6 +14,7 @@ import FlashOverlay from "./FlashOverlay";
 import FullscreenButton from "./FullscreenButton";
 import { useEffect, useState } from "react";
 import { PRO_ENABLED } from "../app/pro";
+import { setSoundOverrides } from "../lib/sound";
 
 function FullscreenLogo({ src }) {
   const [isFullscreen, setIsFullscreen] = useState(
@@ -45,7 +46,11 @@ function FullscreenLogo({ src }) {
           alt="Club Logo"
           className={`
           object-contain shrink-0 transition-all duration-500 ease-out
-          ${isFullscreen ? "h-64 w-64 lg:h-72 lg:w-72" : "h-44 w-44 lg:h-52 lg:w-52"}
+          ${
+            isFullscreen
+              ? "h-64 w-64 lg:h-72 lg:w-72"
+              : "h-44 w-44 lg:h-52 lg:w-52"
+          }
         `}
         />
       </div>
@@ -64,6 +69,10 @@ export default function Dashboard({ state, dispatch }) {
   const nextBlinds = nextBlind ? `${nextBlind.small} / ${nextBlind.big}` : "—";
 
   useEffect(() => {
+    setSoundOverrides(state.sounds);
+  }, [state.sounds]);
+
+  useEffect(() => {
     if (state.timer.status !== "running") return;
 
     const id = setInterval(() => {
@@ -75,10 +84,18 @@ export default function Dashboard({ state, dispatch }) {
 
   return (
     <div
-      className="relative h-screen w-screen text-white p-4 flex flex-col"
+      className="relative h-screen w-screen p-4 flex flex-col"
       style={{
         background:
           "radial-gradient(circle at center, rgba(255,215,0,0.08) 0%, rgba(0,0,0,0) 55%), radial-gradient(circle at top, rgba(16,185,129,0.12), rgba(3,7,18,1) 70%)",
+        "--display-font": state.theme.displayFont,
+        "--body-font": state.theme.bodyFont,
+        "--primary-color": state.theme.primaryColor,
+        "--timer-color": state.theme.timerColor,
+        fontFamily: state.theme.bodyFont,
+
+        // IMPORTANT: base text stays readable regardless of accent choice
+        color: "#ffffff",
       }}
     >
       <FlashOverlay show={state.ui.flash} />
@@ -86,7 +103,17 @@ export default function Dashboard({ state, dispatch }) {
       <div className="flex-grow flex flex-col justify-center -mt-6">
         <div className="flex items-center justify-center mb-8">
           <input
-            className="w-full max-w-4xl bg-transparent text-center text-2xl md:text-3xl font-extrabold font-display tracking-wide text-amber-300 drop-shadow outline-none border-b border-amber-300/30 focus:border-amber-300/70 px-2 py-1"
+            className="w-full max-w-4xl bg-transparent text-center text-2xl md:text-3xl font-extrabold font-display tracking-wide drop-shadow outline-none border-b px-2 py-1"
+            style={{
+              color: state.theme.primaryColor,
+              borderColor: `${state.theme.primaryColor}55`, // ~33% opacity
+            }}
+            onFocus={(e) => {
+              e.currentTarget.style.borderColor = `${state.theme.primaryColor}B3`; // ~70% opacity
+            }}
+            onBlur={(e) => {
+              e.currentTarget.style.borderColor = `${state.theme.primaryColor}55`;
+            }}
             value={state.title}
             onChange={(e) =>
               dispatch({ type: "SET_TITLE", title: e.target.value })
@@ -124,16 +151,32 @@ export default function Dashboard({ state, dispatch }) {
             <div className="mt-6 text-base opacity-60 tracking-widest">
               BLINDS
             </div>
-            <div className="mt-2 text-7xl md:text-7xl font-extrabold font-display text-amber-300 drop-shadow-[0_0_24px_rgba(245,158,11,0.25)]">
+
+            <div
+              className="mt-2 text-7xl md:text-7xl font-extrabold font-display"
+              style={{
+                color: state.theme.primaryColor,
+                textShadow: `0 0 24px ${state.theme.primaryColor}40`,
+              }}
+            >
               {currentBlinds}
             </div>
 
-            <div className="mt-8 whitespace-nowrap text-[120px] md:text-[170px] lg:text-[200px] leading-none font-extrabold font-display text-white/90 tabular-nums drop-shadow-[0_0_24px_rgba(255,255,255,0.10)]">
+            <div
+              className="mt-8 whitespace-nowrap text-[120px] md:text-[170px] lg:text-[200px] leading-none font-extrabold font-display tabular-nums"
+              style={{
+                color: state.theme.timerColor,
+                textShadow: `0 0 24px ${state.theme.timerColor}1A`,
+              }}
+            >
               {formatTime(state.timer.remainingSec)}
             </div>
 
             {nextRound?.type === "break" && current?.type === "blind" && (
-              <div className="mt-6 text-base tracking-widest text-amber-300 font-extrabold">
+              <div
+                className="mt-6 text-base tracking-widest font-extrabold"
+                style={{ color: state.theme.primaryColor }}
+              >
                 BREAK AFTER LEVEL {getDisplayedBlindLevel(state)}
               </div>
             )}
@@ -148,7 +191,11 @@ export default function Dashboard({ state, dispatch }) {
               <div className="text-base opacity-60 tracking-widest">
                 NEXT BLINDS
               </div>
-              <div className="mt-2 text-5xl font-bold font-display opacity-85">
+
+              <div
+                className="mt-2 text-5xl font-bold font-display"
+                style={{ color: state.theme.primaryColor, opacity: 0.85 }}
+              >
                 {nextBlinds}
               </div>
             </div>

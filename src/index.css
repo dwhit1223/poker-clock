@@ -3,12 +3,30 @@
 @tailwind components;
 @tailwind utilities;
 
+/* --- Theme-driven fonts (used by Pro settings) --- */
+:root {
+  --display-font: "Oswald";
+  --body-font: "Inter";
+}
+
+/* Tailwind font classes already used in your components */
+.font-display {
+  font-family: var(--display-font, "Oswald"), sans-serif;
+}
+
+.font-body {
+  font-family: var(--body-font, "Inter"), sans-serif;
+}
+
+/* Make body follow the theme body font by default */
+body {
+  font-family: var(--body-font, "Inter"), sans-serif;
+}
+
 :root {
   color-scheme: dark;
 }
-body {
-  font-family: "Inter", sans-serif;
-}
+
 @keyframes slowspin {
   from {
     transform: rotate(0deg);

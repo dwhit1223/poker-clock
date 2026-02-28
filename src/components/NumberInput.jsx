@@ -8,9 +8,11 @@ export default function NumberInput({
   disabled,
   placeholder,
   ariaLabel,
+  ...rest
 }) {
   return (
     <input
+      {...rest}
       className={className}
       type="number"
       value={value ?? ""}

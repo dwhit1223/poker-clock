@@ -8,6 +8,7 @@ import {
   playBlindUpSound,
 } from "../lib/sound";
 import { PRO_ENABLED } from "../app/pro";
+import { THEMES } from "../app/themes";
 
 export default function SettingsPanel({ state, dispatch }) {
   const UPGRADE_URL = "https://YOUR-LINK-HERE";
@@ -17,46 +18,134 @@ export default function SettingsPanel({ state, dispatch }) {
 
   const onNum = (v) => Number(v) || 0;
 
+  // Theme accent (safe fallback)
+  const accent = state?.theme?.primaryColor || "#f59e0b";
+
+  // Helper: add alpha to a #RRGGBB color => #RRGGBBAA
+  const withAlpha = (hex, aa) => {
+    if (typeof hex !== "string") return hex;
+    if (hex.startsWith("#") && hex.length === 7) return `${hex}${aa}`;
+    return hex; // if it's already rgba() or something else, just pass through
+  };
+
+  // Reusable style tokens
+  const panelBorder = `1px solid ${withAlpha(accent, "33")}`;
+  const softBorder = `1px solid rgba(255,255,255,0.10)`;
+  const accentBorder = `1px solid ${withAlpha(accent, "33")}`;
+  const accentBgSoft = withAlpha(accent, "1F"); // ~12%
+
+  const buttonClass =
+    "px-3 py-2 rounded-lg bg-white/10 hover:bg-white/20 border transition-colors";
+  const inputClass =
+    "w-full rounded-lg bg-white/10 border p-2 text-white outline-none";
+  const smallInputClass =
+    "w-full rounded bg-white/10 border p-1 text-white outline-none";
+  const selectClass =
+    "w-full rounded-lg bg-gray-800 text-white border p-2 focus:outline-none";
+
+  const sectionTitleStyle = { color: accent };
+
+  // -----------------------------
+  // Pro sound upload helpers
+  // -----------------------------
+  const uploadAudio = (key) => {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = "audio/*";
+
+    input.onchange = (e) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+
+      const maxBytes = 5 * 1024 * 1024; // 5MB
+      if (file.size > maxBytes) {
+        alert("Audio file too large. Please use a file under 5MB.");
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = () => {
+        dispatch({
+          type: "SET_SOUND_URL",
+          key,
+          url: reader.result,
+        });
+      };
+      reader.readAsDataURL(file);
+    };
+
+    input.click();
+  };
+
+  const clearAudio = (key) => dispatch({ type: "CLEAR_SOUND_URL", key });
+
   return (
-    <div className="fixed right-4 top-16 bottom-4 w-[380px] max-w-[92vw] overflow-auto rounded-2xl border border-amber-400/20 bg-black/80 backdrop-blur p-4">
-      <div className="flex items-center justify-between mb-3">
+    <div
+      className="fixed right-4 top-16 bottom-4 w-[460px] md:w-[520px] lg:w-[620px] max-w-[92vw] overflow-auto rounded-2xl bg-black/80 backdrop-blur p-6"
+      style={{ border: panelBorder }}
+    >
+      <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
         <div className="flex items-center gap-2">
-          <div className="font-extrabold text-lg text-amber-200">Settings</div>
+          <div className="font-extrabold text-lg" style={{ color: accent }}>
+            Settings
+          </div>
 
           {PRO_ENABLED && (
-            <span className="text-[10px] tracking-widest font-black px-2 py-1 rounded-full bg-amber-400/15 text-amber-200 border border-amber-400/20">
+            <span
+              className="text-[10px] tracking-widest font-black px-2 py-1 rounded-full"
+              style={{
+                backgroundColor: accentBgSoft,
+                color: accent,
+                border: accentBorder,
+              }}
+            >
               PRO
             </span>
           )}
         </div>
-        <button
-          className="px-3 py-2 rounded-lg bg-white/10 hover:bg-white/20 border border-amber-400/15"
-          type="button"
-          onClick={async () => {
-            await unlockAudio();
-            playBlindUpSound();
-            setTimeout(playOneMinuteSound, 400);
-            setTimeout(playBreakSound, 2800);
-          }}
-        >
-          Test Sounds
-        </button>
-        <button
-          className="px-3 py-2 rounded-lg bg-white/10 hover:bg-white/20 border border-amber-400/15"
-          onClick={() => dispatch({ type: "TOGGLE_SETTINGS" })}
-          type="button"
-        >
-          Close
-        </button>
+
+        <div className="flex items-center gap-2">
+          <button
+            className={buttonClass}
+            style={{ border: softBorder }}
+            type="button"
+            onClick={async () => {
+              await unlockAudio();
+              playBlindUpSound();
+              setTimeout(playOneMinuteSound, 400);
+              setTimeout(playBreakSound, 2800);
+            }}
+          >
+            Test Sounds
+          </button>
+
+          <button
+            className={buttonClass}
+            style={{ border: softBorder }}
+            onClick={() => dispatch({ type: "TOGGLE_SETTINGS" })}
+            type="button"
+          >
+            Close
+          </button>
+        </div>
       </div>
 
       <div className="space-y-6">
         {!PRO_ENABLED && (
           <section className="space-y-2">
-            <div className="rounded-2xl border border-amber-400/15 bg-gradient-to-b from-amber-400/10 to-white/5 p-4">
+            <div
+              className="rounded-2xl p-5"
+              style={{
+                border: accentBorder,
+                background: `linear-gradient(to bottom, ${accentBgSoft}, rgba(255,255,255,0.05))`,
+              }}
+            >
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <div className="font-extrabold text-amber-200 tracking-wide">
+                  <div
+                    className="font-extrabold tracking-wide"
+                    style={{ color: accent }}
+                  >
                     Upgrade to Pro
                   </div>
                   <div className="text-sm opacity-75 mt-1">
@@ -64,7 +153,14 @@ export default function SettingsPanel({ state, dispatch }) {
                   </div>
                 </div>
 
-                <span className="text-[10px] tracking-widest font-black px-2 py-1 rounded-full bg-amber-400/15 text-amber-200 border border-amber-400/20">
+                <span
+                  className="text-[10px] tracking-widest font-black px-2 py-1 rounded-full"
+                  style={{
+                    backgroundColor: accentBgSoft,
+                    color: accent,
+                    border: accentBorder,
+                  }}
+                >
                   PRO
                 </span>
               </div>
@@ -78,7 +174,8 @@ export default function SettingsPanel({ state, dispatch }) {
                   href={UPGRADE_URL}
                   target="_blank"
                   rel="noreferrer"
-                  className="inline-flex items-center justify-center px-6 py-2 rounded-lg bg-amber-500 hover:bg-amber-400 text-black font-extrabold text-sm leading-none text-center"
+                  className="inline-flex items-center justify-center px-6 py-2 rounded-lg text-black font-extrabold text-sm leading-none text-center transition-opacity hover:opacity-90"
+                  style={{ backgroundColor: accent }}
                 >
                   Get Pro
                 </a>
@@ -86,13 +183,16 @@ export default function SettingsPanel({ state, dispatch }) {
             </div>
           </section>
         )}
+
         <section className="space-y-2">
-          <div className="font-semibold text-amber-100">
-            Buy-in & Rebuy Values
+          <div className="font-semibold" style={sectionTitleStyle}>
+            Buy-in &amp; Rebuy Values
           </div>
+
           <label className="text-sm opacity-80">Buy-in ($)</label>
           <NumberInput
-            className="w-full rounded-lg bg-white/10 border border-amber-400/15 p-2"
+            className={inputClass}
+            style={{ border: softBorder }}
             value={state.buyInValue}
             onChange={(v) => dispatch({ type: "SET_BUYIN_VALUE", value: v })}
             min={0}
@@ -102,7 +202,8 @@ export default function SettingsPanel({ state, dispatch }) {
 
           <label className="text-sm opacity-80">Rebuy ($)</label>
           <NumberInput
-            className="w-full rounded-lg bg-white/10 border border-amber-400/15 p-2"
+            className={inputClass}
+            style={{ border: softBorder }}
             value={state.rebuyValue}
             onChange={(v) => dispatch({ type: "SET_REBUY_VALUE", value: v })}
             min={0}
@@ -113,11 +214,14 @@ export default function SettingsPanel({ state, dispatch }) {
 
         {PRO_ENABLED ? (
           <section className="space-y-2">
-            <div className="font-semibold text-amber-100">Branding (Pro)</div>
+            <div className="font-semibold" style={sectionTitleStyle}>
+              Branding (Pro)
+            </div>
 
             <div className="grid grid-cols-2 gap-2">
               <button
-                className="px-3 py-2 rounded-lg bg-white/10 hover:bg-white/20 border border-amber-400/15"
+                className={buttonClass}
+                style={{ border: softBorder }}
                 type="button"
                 onClick={() => {
                   const input = document.createElement("input");
@@ -128,7 +232,6 @@ export default function SettingsPanel({ state, dispatch }) {
                     const file = e.target.files?.[0];
                     if (!file) return;
 
-                    // Optional: keep uploads reasonable
                     const maxBytes = 2 * 1024 * 1024; // 2MB
                     if (file.size > maxBytes) {
                       alert(
@@ -154,7 +257,8 @@ export default function SettingsPanel({ state, dispatch }) {
               </button>
 
               <button
-                className="px-3 py-2 rounded-lg bg-white/10 hover:bg-white/20 border border-amber-400/15"
+                className={buttonClass}
+                style={{ border: softBorder }}
                 type="button"
                 onClick={() => dispatch({ type: "CLEAR_LOGO" })}
                 disabled={!state.logoDataUrl}
@@ -168,7 +272,10 @@ export default function SettingsPanel({ state, dispatch }) {
               </button>
             </div>
 
-            <div className="mt-2 rounded-xl border border-amber-400/10 bg-white/5 p-3">
+            <div
+              className="mt-2 rounded-xl bg-white/5 p-4"
+              style={{ border: softBorder }}
+            >
               <div className="text-xs opacity-70 mb-2">Current logo</div>
 
               <div className="flex items-center gap-3">
@@ -178,14 +285,15 @@ export default function SettingsPanel({ state, dispatch }) {
                     `${import.meta.env.BASE_URL}images/logo.png`
                   }
                   alt="Logo preview"
-                  className="h-16 w-16 rounded-full object-contain bg-black/30 border border-amber-400/10"
+                  className="h-16 w-16 rounded-full object-contain bg-black/30"
+                  style={{ border: softBorder }}
                 />
 
                 <div className="text-xs opacity-60 leading-snug">
                   {state.logoDataUrl ? (
                     <>
                       Using{" "}
-                      <span className="text-amber-200 font-semibold">
+                      <span style={{ color: accent }} className="font-semibold">
                         uploaded
                       </span>{" "}
                       logo (saved in config)
@@ -193,7 +301,7 @@ export default function SettingsPanel({ state, dispatch }) {
                   ) : (
                     <>
                       Using{" "}
-                      <span className="text-amber-200 font-semibold">
+                      <span style={{ color: accent }} className="font-semibold">
                         default
                       </span>{" "}
                       logo
@@ -209,11 +317,19 @@ export default function SettingsPanel({ state, dispatch }) {
           </section>
         ) : (
           <section className="space-y-2">
-            <div className="font-semibold text-amber-100">Branding</div>
-            <div className="rounded-xl border border-amber-400/10 bg-white/5 p-3 text-sm">
+            <div className="font-semibold" style={sectionTitleStyle}>
+              Branding
+            </div>
+
+            <div
+              className="rounded-xl bg-white/5 p-3 text-sm"
+              style={{ border: softBorder }}
+            >
               <div className="opacity-80">
                 Custom logo upload is a{" "}
-                <span className="text-amber-200 font-semibold">Pro</span>{" "}
+                <span style={{ color: accent }} className="font-semibold">
+                  Pro
+                </span>{" "}
                 feature.
               </div>
               <div className="text-xs opacity-60 mt-1">
@@ -224,11 +340,320 @@ export default function SettingsPanel({ state, dispatch }) {
           </section>
         )}
 
-        <section className="space-y-2">
-          <div className="font-semibold text-amber-100">Prize Distribution</div>
+        {/* PRO Theme Controls */}
+        {PRO_ENABLED && (
+          <section className="space-y-3">
+            <div className="font-semibold" style={sectionTitleStyle}>
+              Typography &amp; Colors (Pro)
+            </div>
 
-          <div className="rounded-xl border border-amber-400/10 bg-white/5 p-3 mt-3 text-sm">
-            <div className="font-semibold text-amber-100 mb-2">
+            <label className="text-sm opacity-80">Theme Preset</label>
+            <select
+              className={selectClass}
+              style={{ border: softBorder }}
+              value={state.theme.presetKey || "custom"}
+              onChange={(e) => {
+                const key = e.target.value;
+
+                if (key === "custom") {
+                  dispatch({ type: "SET_THEME_PRESET_KEY", value: "custom" });
+                  return;
+                }
+
+                const preset = THEMES?.[key];
+                if (!preset) return;
+
+                // IMPORTANT: include presetKey so reducer can keep presetKey synced
+                dispatch({
+                  type: "APPLY_THEME_PRESET",
+                  theme: preset.theme,
+                  presetKey: key,
+                });
+                dispatch({ type: "SET_THEME_PRESET_KEY", value: key });
+              }}
+            >
+              <option value="custom">Custom</option>
+              {Object.entries(THEMES || {}).map(([key, t]) => (
+                <option key={key} value={key}>
+                  {t.label}
+                </option>
+              ))}
+            </select>
+
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                className={buttonClass}
+                style={{ border: softBorder }}
+                type="button"
+                onClick={() => {
+                  const preset = THEMES?.casinoClassic || {
+                    theme: state.theme,
+                  };
+                  dispatch({
+                    type: "APPLY_THEME_PRESET",
+                    theme: preset.theme,
+                    presetKey: "casinoClassic",
+                  });
+                  dispatch({
+                    type: "SET_THEME_PRESET_KEY",
+                    value: "casinoClassic",
+                  });
+                }}
+              >
+                Reset Theme
+              </button>
+
+              <button
+                className={buttonClass}
+                style={{ border: softBorder }}
+                type="button"
+                onClick={() => {
+                  dispatch({ type: "SET_THEME_PRESET_KEY", value: "custom" });
+                }}
+                title="Keep your current colors/fonts but mark as Custom"
+              >
+                Mark Custom
+              </button>
+            </div>
+
+            <label className="text-sm opacity-80">Display Font</label>
+            <select
+              className={selectClass}
+              style={{ border: softBorder }}
+              value={state.theme.displayFont}
+              onChange={(e) =>
+                dispatch({ type: "SET_DISPLAY_FONT", value: e.target.value })
+              }
+            >
+              <option value="Oswald">Oswald</option>
+              <option value="Inter">Inter</option>
+              <option value="Arial">Arial</option>
+              <option value="Verdana">Verdana</option>
+              <option value="Georgia">Georgia</option>
+              <option value="Courier New">Courier New</option>
+            </select>
+
+            <label className="text-sm opacity-80">Body Font</label>
+            <select
+              className={selectClass}
+              style={{ border: softBorder }}
+              value={state.theme.bodyFont}
+              onChange={(e) =>
+                dispatch({ type: "SET_BODY_FONT", value: e.target.value })
+              }
+            >
+              <option value="Inter">Inter</option>
+              <option value="Oswald">Oswald</option>
+              <option value="Arial">Arial</option>
+              <option value="Verdana">Verdana</option>
+              <option value="Georgia">Georgia</option>
+              <option value="Courier New">Courier New</option>
+            </select>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-sm opacity-80">Primary Color</label>
+                <input
+                  type="color"
+                  className="w-full h-10 rounded-lg bg-white/10 border p-1"
+                  style={{ border: softBorder }}
+                  value={state.theme.primaryColor}
+                  onChange={(e) =>
+                    dispatch({
+                      type: "SET_PRIMARY_COLOR",
+                      value: e.target.value,
+                    })
+                  }
+                />
+              </div>
+
+              <div>
+                <label className="text-sm opacity-80">Timer Color</label>
+                <input
+                  type="color"
+                  className="w-full h-10 rounded-lg bg-white/10 border p-1"
+                  style={{ border: softBorder }}
+                  value={state.theme.timerColor}
+                  onChange={(e) =>
+                    dispatch({ type: "SET_TIMER_COLOR", value: e.target.value })
+                  }
+                />
+              </div>
+            </div>
+
+            <div className="text-xs opacity-60">
+              Tip: Pick a bright primary color for blinds/headers, and a
+              high-contrast timer color (usually white) for readability on TVs.
+            </div>
+          </section>
+        )}
+
+        {/* PRO Custom Sounds */}
+        {PRO_ENABLED && (
+          <section className="space-y-2">
+            <div className="font-semibold" style={sectionTitleStyle}>
+              Custom Sounds (Pro)
+            </div>
+
+            <div className="text-xs opacity-60">
+              Upload MP3/WAV/OGG. These are saved inside your config file.
+            </div>
+
+            <div className="space-y-3">
+              {/* Blind Up */}
+              <div
+                className="rounded-xl bg-white/5 p-3"
+                style={{ border: softBorder }}
+              >
+                <div className="flex items-center justify-between gap-3">
+                  <div className="text-sm font-semibold">Blind Up</div>
+                  <div className="text-xs opacity-60">
+                    {state.sounds?.blindUpUrl ? "Custom" : "Default"}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2 mt-2">
+                  <button
+                    className={buttonClass}
+                    style={{ border: softBorder }}
+                    type="button"
+                    onClick={() => uploadAudio("blindUpUrl")}
+                  >
+                    Upload
+                  </button>
+                  <button
+                    className={buttonClass}
+                    style={{ border: softBorder }}
+                    type="button"
+                    disabled={!state.sounds?.blindUpUrl}
+                    onClick={() => clearAudio("blindUpUrl")}
+                  >
+                    Clear
+                  </button>
+                </div>
+
+                <div className="mt-2">
+                  <button
+                    className={buttonClass}
+                    style={{ border: softBorder, width: "100%" }}
+                    type="button"
+                    onClick={async () => {
+                      await unlockAudio();
+                      playBlindUpSound();
+                    }}
+                  >
+                    Test
+                  </button>
+                </div>
+              </div>
+
+              {/* 1-Min Warning */}
+              <div
+                className="rounded-xl bg-white/5 p-3"
+                style={{ border: softBorder }}
+              >
+                <div className="flex items-center justify-between gap-3">
+                  <div className="text-sm font-semibold">1-Minute Warning</div>
+                  <div className="text-xs opacity-60">
+                    {state.sounds?.oneMinuteUrl ? "Custom" : "Default"}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2 mt-2">
+                  <button
+                    className={buttonClass}
+                    style={{ border: softBorder }}
+                    type="button"
+                    onClick={() => uploadAudio("oneMinuteUrl")}
+                  >
+                    Upload
+                  </button>
+                  <button
+                    className={buttonClass}
+                    style={{ border: softBorder }}
+                    type="button"
+                    disabled={!state.sounds?.oneMinuteUrl}
+                    onClick={() => clearAudio("oneMinuteUrl")}
+                  >
+                    Clear
+                  </button>
+                </div>
+
+                <div className="mt-2">
+                  <button
+                    className={buttonClass}
+                    style={{ border: softBorder, width: "100%" }}
+                    type="button"
+                    onClick={async () => {
+                      await unlockAudio();
+                      playOneMinuteSound();
+                    }}
+                  >
+                    Test
+                  </button>
+                </div>
+              </div>
+
+              {/* Break */}
+              <div
+                className="rounded-xl bg-white/5 p-3"
+                style={{ border: softBorder }}
+              >
+                <div className="flex items-center justify-between gap-3">
+                  <div className="text-sm font-semibold">Break Start</div>
+                  <div className="text-xs opacity-60">
+                    {state.sounds?.breakUrl ? "Custom" : "Default"}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2 mt-2">
+                  <button
+                    className={buttonClass}
+                    style={{ border: softBorder }}
+                    type="button"
+                    onClick={() => uploadAudio("breakUrl")}
+                  >
+                    Upload
+                  </button>
+                  <button
+                    className={buttonClass}
+                    style={{ border: softBorder }}
+                    type="button"
+                    disabled={!state.sounds?.breakUrl}
+                    onClick={() => clearAudio("breakUrl")}
+                  >
+                    Clear
+                  </button>
+                </div>
+
+                <div className="mt-2">
+                  <button
+                    className={buttonClass}
+                    style={{ border: softBorder, width: "100%" }}
+                    type="button"
+                    onClick={async () => {
+                      await unlockAudio();
+                      playBreakSound();
+                    }}
+                  >
+                    Test
+                  </button>
+                </div>
+              </div>
+            </div>
+          </section>
+        )}
+
+        <section className="space-y-2">
+          <div className="font-semibold" style={sectionTitleStyle}>
+            Prize Distribution
+          </div>
+
+          <div
+            className="rounded-xl bg-white/5 p-4 mt-3 text-sm"
+            style={{ border: softBorder }}
+          >
+            <div className="font-semibold mb-2" style={{ color: accent }}>
               Prize Pool Breakdown
             </div>
 
@@ -249,7 +674,7 @@ export default function SettingsPanel({ state, dispatch }) {
 
             <div className="mt-2 pt-2 border-t border-white/10 flex justify-between">
               <span className="opacity-80">After Deductions</span>
-              <span className="text-amber-200 font-extrabold">
+              <span className="font-extrabold" style={{ color: accent }}>
                 ${payoutInfo.afterDeductions}
               </span>
             </div>
@@ -265,7 +690,7 @@ export default function SettingsPanel({ state, dispatch }) {
 
                 <div className="mt-2 pt-2 border-t border-white/10 flex justify-between">
                   <span className="opacity-80">Percent Base Pool</span>
-                  <span className="text-amber-200 font-extrabold">
+                  <span className="font-extrabold" style={{ color: accent }}>
                     ${payoutInfo.percentBasePool}
                   </span>
                 </div>
@@ -275,7 +700,8 @@ export default function SettingsPanel({ state, dispatch }) {
 
           <label className="text-sm opacity-80">Dealer Pay ($)</label>
           <NumberInput
-            className="w-full rounded-lg bg-white/10 border border-amber-400/15 p-2"
+            className={inputClass}
+            style={{ border: softBorder }}
             value={state.prize.dealerPay}
             onChange={(v) => dispatch({ type: "SET_DEALER_PAY", value: v })}
             min={0}
@@ -285,7 +711,8 @@ export default function SettingsPanel({ state, dispatch }) {
 
           <label className="text-sm opacity-80">Bounty Pay ($)</label>
           <NumberInput
-            className="w-full rounded-lg bg-white/10 border border-amber-400/15 p-2"
+            className={inputClass}
+            style={{ border: softBorder }}
             value={state.prize.bountyPay}
             onChange={(v) => dispatch({ type: "SET_BOUNTY_PAY", value: v })}
             min={0}
@@ -295,8 +722,12 @@ export default function SettingsPanel({ state, dispatch }) {
 
           <label className="text-sm opacity-80">Mode</label>
           <select
-            className="w-full rounded-lg bg-gray-800 text-white border border-amber-400/20 p-2 focus:outline-none focus:ring-1 focus:ring-amber-400"
-            style={{ backgroundColor: "#1f2937", color: "#ffffff" }}
+            className={selectClass}
+            style={{
+              border: softBorder,
+              backgroundColor: "#1f2937",
+              color: "#ffffff",
+            }}
             value={state.prize.mode}
             onChange={(e) =>
               dispatch({ type: "SET_PRIZE_MODE", mode: e.target.value })
@@ -308,14 +739,12 @@ export default function SettingsPanel({ state, dispatch }) {
             >
               All Percent
             </option>
-
             <option
               value="fixed"
               style={{ backgroundColor: "#1f2937", color: "#ffffff" }}
             >
               All Fixed
             </option>
-
             <option
               value="percent_last_fixed"
               style={{ backgroundColor: "#1f2937", color: "#ffffff" }}
@@ -325,9 +754,12 @@ export default function SettingsPanel({ state, dispatch }) {
           </select>
 
           <div className="mt-2 flex items-center justify-between">
-            <div className="font-semibold text-amber-100">Paid Places</div>
+            <div className="font-semibold" style={sectionTitleStyle}>
+              Paid Places
+            </div>
             <button
-              className="px-3 py-2 rounded-lg bg-white/10 hover:bg-white/20 border border-amber-400/15"
+              className={buttonClass}
+              style={{ border: softBorder }}
               onClick={() => dispatch({ type: "ADD_PRIZE_PLACE" })}
               type="button"
             >
@@ -338,46 +770,41 @@ export default function SettingsPanel({ state, dispatch }) {
           <div className="space-y-2">
             {state.prize.places.map((p, i) => {
               const isLast = i === state.prize.places.length - 1;
-              const isLockedLast =
+              const isLockedType =
                 state.prize.mode === "percent_last_fixed" && isLast;
 
               return (
                 <div
                   key={i}
-                  className="rounded-xl border border-amber-400/10 bg-white/5 p-3"
+                  className="rounded-xl bg-white/5 p-3"
+                  style={{ border: softBorder }}
                 >
                   <div className="flex items-center justify-between">
                     <div className="text-sm font-semibold">
-                      {isLockedLast ? "Last" : p.label || `Place ${i + 1}`}
+                      {p.label || `Place ${i + 1}`}
                     </div>
+
                     <button
-                      className="text-sm px-2 py-1 rounded bg-white/10 hover:bg-white/20 border border-amber-400/10"
+                      className="text-sm px-2 py-1 rounded bg-white/10 hover:bg-white/20 border disabled:opacity-40 disabled:cursor-not-allowed"
+                      style={{ border: softBorder }}
                       onClick={() =>
                         dispatch({ type: "REMOVE_PRIZE_PLACE", index: i })
                       }
                       type="button"
-                      disabled={state.prize.places.length <= 1 || isLockedLast} // optional: prevent removing last in hybrid mode
-                      title={
-                        isLockedLast
-                          ? "Last place is required in this mode"
-                          : "Remove"
-                      }
-                      style={
-                        isLockedLast
-                          ? { opacity: 0.5, cursor: "not-allowed" }
-                          : undefined
-                      }
+                      disabled={state.prize.places.length <= 1}
+                      title="Remove"
                     >
                       Remove
                     </button>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-2 mt-2">
+                  <div className="grid grid-cols-2 gap-3 mt-2">
                     <div>
                       <label className="text-xs opacity-70">Label</label>
                       <input
-                        className="w-full rounded bg-white/10 border border-amber-400/15 p-1"
-                        value={isLockedLast ? "Last" : p.label || ""}
+                        className={smallInputClass}
+                        style={{ border: softBorder }}
+                        value={p.label || ""}
                         onChange={(e) =>
                           dispatch({
                             type: "UPDATE_PRIZE_PLACE",
@@ -386,7 +813,6 @@ export default function SettingsPanel({ state, dispatch }) {
                           })
                         }
                         onFocus={(e) => e.target.select()}
-                        disabled={isLockedLast}
                       />
                     </div>
 
@@ -395,7 +821,8 @@ export default function SettingsPanel({ state, dispatch }) {
                         {p.type === "fixed" ? "Amount ($)" : "Percent (%)"}
                       </label>
                       <NumberInput
-                        className="w-full rounded bg-white/10 border border-amber-400/15 p-1"
+                        className={smallInputClass}
+                        style={{ border: softBorder }}
                         value={p.value}
                         onChange={(v) =>
                           dispatch({
@@ -410,6 +837,14 @@ export default function SettingsPanel({ state, dispatch }) {
                       />
                     </div>
                   </div>
+
+                  {isLockedType && (
+                    <div className="mt-2 text-[11px] opacity-60">
+                      Note: In this mode, the{" "}
+                      <span style={{ color: accent }}>last paid place</span> is
+                      a fixed amount.
+                    </div>
+                  )}
                 </div>
               );
             })}
@@ -417,12 +852,18 @@ export default function SettingsPanel({ state, dispatch }) {
         </section>
 
         <section className="space-y-2">
-          <div className="font-semibold text-amber-100">Blind Structure</div>
+          <div className="font-semibold" style={sectionTitleStyle}>
+            Blind Structure
+          </div>
 
           <label className="text-sm opacity-80">Template</label>
           <select
-            className="w-full rounded-lg bg-gray-800 text-white border border-amber-400/20 p-2 focus:outline-none focus:ring-1 focus:ring-amber-400"
-            style={{ backgroundColor: "#1f2937", color: "#ffffff" }}
+            className={selectClass}
+            style={{
+              border: softBorder,
+              backgroundColor: "#1f2937",
+              color: "#ffffff",
+            }}
             onChange={(e) => {
               const key = e.target.value;
               dispatch({
@@ -443,16 +884,19 @@ export default function SettingsPanel({ state, dispatch }) {
             ))}
           </select>
 
-          <div className="grid grid-cols-2 gap-2 mt-2">
+          <div className="grid grid-cols-2 gap-3 mt-2">
             <button
-              className="px-3 py-2 rounded-lg bg-white/10 hover:bg-white/20 border border-amber-400/15"
+              className={buttonClass}
+              style={{ border: softBorder }}
               onClick={() => dispatch({ type: "ADD_BLIND_ROUND" })}
               type="button"
             >
               + Blind Round
             </button>
+
             <button
-              className="px-3 py-2 rounded-lg bg-white/10 hover:bg-white/20 border border-amber-400/15"
+              className={buttonClass}
+              style={{ border: softBorder }}
               onClick={() => dispatch({ type: "ADD_BREAK_ROUND" })}
               type="button"
             >
@@ -464,19 +908,18 @@ export default function SettingsPanel({ state, dispatch }) {
             {state.blinds.map((r, i) => (
               <div
                 key={i}
-                className="rounded-xl border border-amber-400/10 bg-white/5 p-3"
+                className="rounded-xl bg-white/5 p-3"
+                style={{ border: softBorder }}
               >
                 <div className="flex items-center justify-between">
                   <div className="text-sm font-semibold">
                     {(() => {
-                      // Compute blind level number up to this index (breaks don't count)
                       let level = 0;
                       for (let j = 0; j <= i; j++) {
                         if (state.blinds[j]?.type === "blind") level++;
                       }
 
                       if (r.type === "break") {
-                        // Break doesn't count as a level; show where it occurs
                         return `Break (after Level ${Math.max(1, level)})`;
                       }
 
@@ -486,7 +929,8 @@ export default function SettingsPanel({ state, dispatch }) {
 
                   <div className="flex items-center gap-2">
                     <button
-                      className="text-sm px-2 py-1 rounded bg-white/10 hover:bg-white/20 border border-amber-400/10 disabled:opacity-40 disabled:cursor-not-allowed"
+                      className="text-sm px-2 py-1 rounded bg-white/10 hover:bg-white/20 border disabled:opacity-40 disabled:cursor-not-allowed"
+                      style={{ border: softBorder }}
                       onClick={() =>
                         dispatch({ type: "MOVE_ROUND", from: i, dir: -1 })
                       }
@@ -498,7 +942,8 @@ export default function SettingsPanel({ state, dispatch }) {
                     </button>
 
                     <button
-                      className="text-sm px-2 py-1 rounded bg-white/10 hover:bg-white/20 border border-amber-400/10 disabled:opacity-40 disabled:cursor-not-allowed"
+                      className="text-sm px-2 py-1 rounded bg-white/10 hover:bg-white/20 border disabled:opacity-40 disabled:cursor-not-allowed"
+                      style={{ border: softBorder }}
                       onClick={() =>
                         dispatch({ type: "MOVE_ROUND", from: i, dir: 1 })
                       }
@@ -510,7 +955,8 @@ export default function SettingsPanel({ state, dispatch }) {
                     </button>
 
                     <button
-                      className="text-sm px-2 py-1 rounded bg-white/10 hover:bg-white/20 border border-amber-400/10"
+                      className="text-sm px-2 py-1 rounded bg-white/10 hover:bg-white/20 border"
+                      style={{ border: softBorder }}
                       onClick={() =>
                         dispatch({ type: "REMOVE_ROUND", index: i })
                       }
@@ -523,11 +969,12 @@ export default function SettingsPanel({ state, dispatch }) {
                 </div>
 
                 {r.type === "blind" ? (
-                  <div className="grid grid-cols-3 gap-2 mt-2">
+                  <div className="grid grid-cols-3 gap-3 mt-2">
                     <div>
                       <label className="text-xs opacity-70">Small</label>
                       <NumberInput
-                        className="w-full rounded bg-white/10 border border-amber-400/15 p-1"
+                        className={smallInputClass}
+                        style={{ border: softBorder }}
                         value={r.small}
                         onChange={(v) =>
                           dispatch({
@@ -545,7 +992,8 @@ export default function SettingsPanel({ state, dispatch }) {
                     <div>
                       <label className="text-xs opacity-70">Big</label>
                       <NumberInput
-                        className="w-full rounded bg-white/10 border border-amber-400/15 p-1"
+                        className={smallInputClass}
+                        style={{ border: softBorder }}
                         value={r.big}
                         onChange={(v) =>
                           dispatch({
@@ -563,7 +1011,8 @@ export default function SettingsPanel({ state, dispatch }) {
                     <div>
                       <label className="text-xs opacity-70">Min</label>
                       <NumberInput
-                        className="w-full rounded bg-white/10 border border-amber-400/15 p-1"
+                        className={smallInputClass}
+                        style={{ border: softBorder }}
                         value={Math.round(r.durationSec / 60)}
                         onChange={(v) =>
                           dispatch({
@@ -585,7 +1034,8 @@ export default function SettingsPanel({ state, dispatch }) {
                         Break Minutes
                       </label>
                       <NumberInput
-                        className="w-full rounded bg-white/10 border border-amber-400/15 p-1"
+                        className={smallInputClass}
+                        style={{ border: softBorder }}
                         value={Math.round(r.durationSec / 60)}
                         onChange={(v) =>
                           dispatch({
@@ -605,63 +1055,77 @@ export default function SettingsPanel({ state, dispatch }) {
             ))}
           </div>
         </section>
-      </div>
-      {PRO_ENABLED ? (
-        <section className="space-y-2">
-          <div className="font-semibold text-amber-100">Configuration</div>
 
-          <div className="grid grid-cols-2 gap-2">
-            <button
-              className="px-3 py-2 rounded-lg bg-white/10 hover:bg-white/20 border border-amber-400/15"
-              onClick={() => dispatch({ type: "EXPORT_CONFIG" })}
-              type="button"
-            >
-              Save Config
-            </button>
-
-            <button
-              className="px-3 py-2 rounded-lg bg-white/10 hover:bg-white/20 border border-amber-400/15"
-              onClick={() => {
-                const input = document.createElement("input");
-                input.type = "file";
-                input.accept = "application/json";
-
-                input.onchange = async (e) => {
-                  const file = e.target.files?.[0];
-                  if (!file) return;
-
-                  try {
-                    const text = await file.text();
-                    const config = JSON.parse(text);
-
-                    dispatch({
-                      type: "IMPORT_CONFIG",
-                      config,
-                    });
-                  } catch {
-                    alert("Invalid config file");
-                  }
-                };
-
-                input.click();
-              }}
-              type="button"
-            >
-              Load Config
-            </button>
-          </div>
-        </section>
-      ) : (
-        <section className="space-y-2">
-          <div className="font-semibold text-amber-100">Configuration</div>
-          <div className="rounded-xl border border-amber-400/10 bg-white/5 p-3 text-sm">
-            <div className="opacity-80">
-              Save/Load tournament presets is a{" "}
-              <span className="text-amber-200 font-semibold">Pro</span> feature.
+        {PRO_ENABLED ? (
+          <section className="space-y-2">
+            <div className="font-semibold" style={sectionTitleStyle}>
+              Configuration
             </div>
-          </div>
-        </section>
-      )}
+
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                className={buttonClass}
+                style={{ border: softBorder }}
+                onClick={() => dispatch({ type: "EXPORT_CONFIG" })}
+                type="button"
+              >
+                Save Config
+              </button>
+
+              <button
+                className={buttonClass}
+                style={{ border: softBorder }}
+                onClick={() => {
+                  const input = document.createElement("input");
+                  input.type = "file";
+                  input.accept = "application/json";
+
+                  input.onchange = async (e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+
+                    try {
+                      const text = await file.text();
+                      const config = JSON.parse(text);
+
+                      dispatch({
+                        type: "IMPORT_CONFIG",
+                        config,
+                      });
+                    } catch {
+                      alert("Invalid config file");
+                    }
+                  };
+
+                  input.click();
+                }}
+                type="button"
+              >
+                Load Config
+              </button>
+            </div>
+          </section>
+        ) : (
+          <section className="space-y-2">
+            <div className="font-semibold" style={sectionTitleStyle}>
+              Configuration
+            </div>
+
+            <div
+              className="rounded-xl bg-white/5 p-3 text-sm"
+              style={{ border: softBorder }}
+            >
+              <div className="opacity-80">
+                Save/Load tournament presets is a{" "}
+                <span style={{ color: accent }} className="font-semibold">
+                  Pro
+                </span>{" "}
+                feature.
+              </div>
+            </div>
+          </section>
+        )}
+      </div>
     </div>
   );
 }

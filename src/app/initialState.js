@@ -4,7 +4,21 @@ export function createInitialState() {
   const template = BLIND_TEMPLATES.slow;
 
   return {
-    title: "Deuces Poker Tournament",
+    theme: {
+      presetKey: "casinoClassic",
+      displayFont: "Oswald",
+      bodyFont: "Inter",
+      primaryColor: "#f59e0b",
+      timerColor: "#ffffff",
+    },
+
+    sounds: {
+      blindUpUrl: null,
+      oneMinuteUrl: null,
+      breakUrl: null,
+    },
+
+    title: "Pro Poker Tournament",
     logoDataUrl: null, // Pro: uploaded logo (data URL). null = use default public/images/logo.png
 
     buyInValue: 40,
@@ -17,7 +31,7 @@ export function createInitialState() {
       // "percent" = all places are percent
       // "fixed" = all places are fixed dollar amounts
       // "percent_last_fixed" = all except LAST are percent, LAST is fixed
-      mode: "percent_last_fixed",
+      mode: "percent",
 
       dealerPay: 0,
       bountyPay: 0,
@@ -28,7 +42,6 @@ export function createInitialState() {
         { label: "1st", type: "percent", value: 50 },
         { label: "2nd", type: "percent", value: 30 },
         { label: "3rd", type: "percent", value: 20 },
-        { label: "Last", type: "fixed", value: 40 }, // example last-place fixed payout
       ],
     },
 
