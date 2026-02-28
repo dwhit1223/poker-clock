@@ -9,9 +9,8 @@
     "preview": "vite preview",
     "test": "vitest",
     "build:zip:free": "cross-env VITE_BASE=./ VITE_PRO=false vite build",
-    "build:zip:pro": "cross-env VITE_BASE=./ VITE_PRO=true vite build",
-    "build:pages:free": "cross-env VITE_BASE=/poker-clock/ VITE_PRO=false vite build",
-    "build:pages:pro": "cross-env VITE_BASE=/poker-clock/ VITE_PRO=true vite build"
+    "build:zip:pro": "cross-env VITE_BASE=./ VITE_PRO=true VITE_ENTRY=pro vite build",
+    "build:pages:free": "cross-env VITE_BASE=/ VITE_PRO=false VITE_ENTRY=landing vite build"
   },
   "dependencies": {
     "react": "^18.3.1",

@@ -6,9 +6,7 @@ $ErrorActionPreference = "Stop"
 # --- CONFIG: change these if you want ---
 $RepoRoot     = Split-Path -Parent $MyInvocation.MyCommand.Path
 $ReleaseRoot  = Join-Path $RepoRoot "..\PokerClock-Pro-Release"
-$PackageJson = Join-Path $RepoRoot "package.json"
-$Version = (Get-Content $PackageJson | ConvertFrom-Json).version
-$ZipPath = Join-Path $RepoRoot "..\PokerClock-Pro-v$Version.zip"
+$ZipPath      = Join-Path $RepoRoot "..\PokerClock-Pro-Release.zip"
 
 # Where your Vite build output goes
 $ViteDist     = Join-Path $RepoRoot "dist"
@@ -19,9 +17,13 @@ $LauncherWork = Join-Path $RepoRoot "..\PokerClock-Launcher-Build"
 # Name of the exe we ship
 $ExeName      = "PokerClock.exe"
 
+# ✅ Since PRO build renders Dashboard directly (no router), open root:
+$StartPath    = ""   # e.g. "" or "/" . If you ever add routing, set "demo" or "pro"
+
 Write-Host "RepoRoot:      $RepoRoot"
 Write-Host "ReleaseRoot:   $ReleaseRoot"
 Write-Host "ZipPath:       $ZipPath"
+Write-Host "StartPath:     '$StartPath'"
 Write-Host ""
 
 # --- 1) Build PRO web app (offline base ./) ---
@@ -53,19 +55,9 @@ if (Test-Path $LauncherWork) {
 }
 New-Item -ItemType Directory -Path $LauncherWork | Out-Null
 
-# --- Copy icon into launcher folder for PyInstaller ---
-$IconSource = Join-Path $RepoRoot "pokerclock.ico"
-$IconLocal  = Join-Path $LauncherWork "pokerclock.ico"
-
-if (!(Test-Path $IconSource)) {
-  throw "Icon file not found in repo root: $IconSource"
-}
-
-Copy-Item -Force $IconSource $IconLocal
-
 $ServerPy = Join-Path $LauncherWork "server.py"
 
-@'
+@"
 import http.server
 import socketserver
 import webbrowser
@@ -80,21 +72,19 @@ import re
 APP_NAME = "Poker Clock"
 START_PORT = 5173
 
+# ✅ Optional start path (empty opens root)
+START_PATH = r"$StartPath"
+
 def get_base_dir():
     if getattr(sys, "frozen", False):
         return os.path.dirname(sys.executable)
     return os.path.dirname(os.path.abspath(__file__))
 
 def log(msg: str):
-    try:
-        # Always writable log location
-        log_dir = os.path.join(os.environ.get("LOCALAPPDATA", get_base_dir()), "Poker Clock")
-        os.makedirs(log_dir, exist_ok=True)
-        path = os.path.join(log_dir, "server.log")
-        with open(path, "a", encoding="utf-8") as f:
-            f.write(msg + "\n")
-    except Exception:
-        pass
+    base = get_base_dir()
+    path = os.path.join(base, "server.log")
+    with open(path, "a", encoding="utf-8") as f:
+        f.write(msg + "\n")
 
 def alert_windows(message: str):
     try:
@@ -153,10 +143,18 @@ class LoggingHandler(http.server.SimpleHTTPRequestHandler):
             log("HANDLER CRASH:\n" + traceback.format_exc())
             raise
 
+def normalize_start_path(p: str) -> str:
+    if not p:
+        return "/"
+    p = p.strip()
+    if p == "/":
+        return "/"
+    if not p.startswith("/"):
+        p = "/" + p
+    return p
+
 def run_server():
     try:
-        print("Poker Clock starting...")
-        log("Poker Clock starting...")
         base = get_base_dir()
         app_dir = os.path.join(base, "app")
 
@@ -180,7 +178,9 @@ def run_server():
         log("Serving from: " + os.getcwd())
 
         port = find_free_port()
-        url = f"http://127.0.0.1:{port}/"
+        root_url = f"http://127.0.0.1:{port}"
+        url = root_url + normalize_start_path(START_PATH)
+
         log(f"Using port: {port}")
         log(f"URL: {url}")
 
@@ -198,7 +198,7 @@ def run_server():
         # Wait a touch longer to avoid “opened too fast” edge cases
         time.sleep(0.6)
 
-        # Self-test: request / once so we know if handler crashes immediately
+        # Self-test: request start URL
         try:
             import urllib.request
             urllib.request.urlopen(url, timeout=2).read(64)
@@ -229,7 +229,7 @@ def run_server():
 
 if __name__ == "__main__":
     run_server()
-'@ | Set-Content -Encoding UTF8 $ServerPy
+"@ | Set-Content -Encoding UTF8 $ServerPy
 
 # --- 5) Build EXE via PyInstaller ---
 Write-Host "5) Building EXE with PyInstaller..." -ForegroundColor Cyan
@@ -237,33 +237,7 @@ Push-Location $LauncherWork
 
 # Ensure pyinstaller exists
 python -m pip show pyinstaller | Out-Null
-# Use the icon we copied into $LauncherWork (relative path is safest)
-if (!(Test-Path (Join-Path $LauncherWork "pokerclock.ico"))) {
-  throw "Icon file not found in launcher work folder."
-}
-
-# Clean any previous PyInstaller output inside launcher folder
-if (Test-Path (Join-Path $LauncherWork "dist")) { Remove-Item -Recurse -Force (Join-Path $LauncherWork "dist") }
-if (Test-Path (Join-Path $LauncherWork "build")) { Remove-Item -Recurse -Force (Join-Path $LauncherWork "build") }
-Get-ChildItem -Path $LauncherWork -Filter "*.spec" -ErrorAction SilentlyContinue | Remove-Item -Force -ErrorAction SilentlyContinue
-
-# Force output locations so our script always knows where to find the EXE
-python -m PyInstaller `
-  --onefile `
-  --console `
-  --name "PokerClock" `
-  --icon "pokerclock.ico" `
-  --distpath (Join-Path $LauncherWork "dist") `
-  --workpath (Join-Path $LauncherWork "build") `
-  --specpath $LauncherWork `
-  server.py
-
-if ($LASTEXITCODE -ne 0) {
-  throw "PyInstaller failed (exit code $LASTEXITCODE). Scroll up to see the error output."
-}
-
-Write-Host "PyInstaller dist contents:" -ForegroundColor Yellow
-Get-ChildItem -Path (Join-Path $LauncherWork "dist") -Force | Format-Table -AutoSize
+python -m PyInstaller --onefile --console --name PokerClock server.py
 
 Pop-Location
 

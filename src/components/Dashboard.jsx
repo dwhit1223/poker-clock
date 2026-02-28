@@ -178,6 +178,9 @@ export default function Dashboard({ state, dispatch }) {
       <SettingsPanel state={state} dispatch={dispatch} />
 
       <FullscreenButton />
+      <div className="absolute bottom-3 left-3 text-xs text-white/40">
+        v{import.meta.env.VITE_APP_VERSION}
+      </div>
     </div>
   );
 }
