@@ -1,3 +1,5 @@
+import Privacy from "./Privacy";
+
 export default function Landing({ page = "home" }) {
   const base = import.meta.env.BASE_URL || "/";
   const demoUrl = `${base}demo`;
@@ -102,22 +104,7 @@ export default function Landing({ page = "home" }) {
 
     privacy: {
       title: "Privacy Policy",
-      body: (
-        <div className="space-y-4 opacity-80">
-          <p>
-            Poker Clock Pro is designed to run locally. Your tournament data
-            stays on your machine unless you choose to export and share a config
-            file.
-          </p>
-          <p>
-            The demo/website may collect an email address only if you submit the
-            “notify me” form. That email is used solely to send launch updates.
-          </p>
-          <p className="text-xs opacity-60">
-            (Replace this with your final privacy text before launch.)
-          </p>
-        </div>
-      ),
+      body: <Privacy />,
     },
 
     refund: {
