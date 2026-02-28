@@ -22,6 +22,30 @@ const relPath = getRelativePath();
 const showApp =
   entry === "pro" ? true : relPath === "/demo" || relPath.startsWith("/demo/");
 
+// Simple path → page mapping (no React Router)
+function getLandingPage(pathname) {
+  // normalize: remove trailing slash except root
+  const normalized =
+    pathname.length > 1 && pathname.endsWith("/")
+      ? pathname.slice(0, -1)
+      : pathname;
+
+  const p = normalized.toLowerCase();
+
+  if (p === "/" || p === "") return "home";
+  if (p === "/features") return "features";
+  if (p === "/pricing") return "pricing";
+  if (p === "/support") return "support";
+  if (p === "/privacy") return "privacy";
+  if (p === "/refund") return "refund";
+
+  return "notfound";
+}
+
+const landingPage = getLandingPage(relPath);
+
 ReactDOM.createRoot(document.getElementById("root")).render(
-  <React.StrictMode>{showApp ? <App /> : <Landing />}</React.StrictMode>,
+  <React.StrictMode>
+    {showApp ? <App /> : <Landing page={landingPage} />}
+  </React.StrictMode>,
 );

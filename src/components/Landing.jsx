@@ -1,11 +1,9 @@
-export default function Landing() {
+export default function Landing({ page = "home" }) {
   const base = import.meta.env.BASE_URL || "/";
   const demoUrl = `${base}demo`;
 
-  // Pick ONE accent that matches your logo.
-  // If your logo is gold: keep this.
-  // If your logo is red/black: change to something like "#ef4444".
-  const ACCENT = "#D4AF37"; // brand accent (gold)
+  // Brand accents
+  const ACCENT = "#D4AF37"; // gold
   const RED = "#C1121F";
 
   // Helpers
@@ -18,8 +16,221 @@ export default function Landing() {
   const borderSoft = "1px solid rgba(255,255,255,0.10)";
   const borderAccent = `1px solid ${withAlpha(ACCENT, "33")}`; // ~20%
   const accentSoftBg = withAlpha(ACCENT, "14"); // ~8%
-  const accentBg = withAlpha(ACCENT, "1F"); // ~12%
 
+  // ----- STATIC PAGES (footer links) -----
+  const PAGES = {
+    features: {
+      title: "Features",
+      body: (
+        <div className="space-y-4">
+          <p className="opacity-80">
+            Poker Clock Pro is built for a polished home game: big-screen
+            clarity, simple controls, and clean tournament tools.
+          </p>
+          <ul className="list-disc pl-5 space-y-2 opacity-80">
+            <li>Big-screen tournament timer with blinds + breaks</li>
+            <li>Prize pool tools (dealer/bounty deductions supported)</li>
+            <li>Branding: logo upload + themes (Pro)</li>
+            <li>Save/Load tournament configs (Pro)</li>
+            <li>Custom sounds (Pro)</li>
+            <li>Offline-friendly (works great on local networks)</li>
+          </ul>
+          <p className="text-xs opacity-60">
+            Screenshots + a walkthrough video are coming soon.
+          </p>
+        </div>
+      ),
+    },
+
+    pricing: {
+      title: "Pricing",
+      body: (
+        <div className="space-y-4">
+          <p className="opacity-80">
+            Pricing will be announced at launch. The plan is a simple one-time
+            purchase.
+          </p>
+          <div
+            className="rounded-2xl bg-white/5 p-4"
+            style={{ border: borderSoft }}
+          >
+            <div
+              className="font-semibold"
+              style={{ color: withAlpha(ACCENT, "E6") }}
+            >
+              Free Demo
+            </div>
+            <div className="mt-1 opacity-75">
+              Try the full demo in your browser. Great for testing on a TV.
+            </div>
+
+            <div
+              className="mt-4 font-semibold"
+              style={{ color: withAlpha(ACCENT, "E6") }}
+            >
+              Pro (Coming Soon)
+            </div>
+            <div className="mt-1 opacity-75">
+              Logo upload, themes, save/load configs, and custom sounds.
+            </div>
+          </div>
+        </div>
+      ),
+    },
+
+    support: {
+      title: "Support",
+      body: (
+        <div className="space-y-4">
+          <p className="opacity-80">
+            Need help or found a bug? Here’s the fastest way to get it fixed.
+          </p>
+          <ul className="list-disc pl-5 space-y-2 opacity-80">
+            <li>
+              Include your OS (Windows/Mac), browser, and what you expected to
+              happen
+            </li>
+            <li>Send a screenshot (or a quick phone photo of the TV screen)</li>
+            <li>If it’s audio-related, mention which sounds you’re using</li>
+          </ul>
+          <p className="opacity-80">
+            Email support details will be added at launch.
+          </p>
+        </div>
+      ),
+    },
+
+    privacy: {
+      title: "Privacy Policy",
+      body: (
+        <div className="space-y-4 opacity-80">
+          <p>
+            Poker Clock Pro is designed to run locally. Your tournament data
+            stays on your machine unless you choose to export and share a config
+            file.
+          </p>
+          <p>
+            The demo/website may collect an email address only if you submit the
+            “notify me” form. That email is used solely to send launch updates.
+          </p>
+          <p className="text-xs opacity-60">
+            (Replace this with your final privacy text before launch.)
+          </p>
+        </div>
+      ),
+    },
+
+    refund: {
+      title: "Refund Policy",
+      body: (
+        <div className="space-y-4 opacity-80">
+          <p>Refund policy will be posted when Pro launches.</p>
+          <p className="text-xs opacity-60">
+            (Replace this with your final refund terms before launch —
+            especially if you sell via Gumroad/Stripe/etc.)
+          </p>
+        </div>
+      ),
+    },
+
+    notfound: {
+      title: "Page Not Found",
+      body: (
+        <div className="space-y-4">
+          <p className="opacity-80">That page doesn’t exist.</p>
+          <a
+            href={base}
+            className="inline-flex items-center justify-center px-5 py-3 rounded-xl bg-white/10 hover:bg-white/20 border font-semibold"
+            style={{ border: borderAccent }}
+          >
+            Go back home →
+          </a>
+        </div>
+      ),
+    },
+  };
+
+  // If not the homepage, render a simple static page shell
+  if (page !== "home") {
+    const content = PAGES[page] || PAGES.notfound;
+
+    return (
+      <div
+        className="min-h-screen text-white"
+        style={{
+          background: `
+            radial-gradient(circle at center, ${withAlpha(ACCENT, "14")} 0%, rgba(0,0,0,0) 55%),
+            radial-gradient(circle at top, rgba(16,185,129,0.12), rgba(3,7,18,1) 70%)
+          `,
+        }}
+      >
+        {/* Top bar */}
+        <div className="max-w-6xl mx-auto px-5 pt-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div className="flex flex-col items-end">
+            <a href={base} className="block">
+              <img
+                src="/images/logo-horizontal.png"
+                alt="Poker Clock Pro"
+                className="h-20 sm:h-24 md:h-32 w-auto"
+              />
+            </a>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <a
+              href={demoUrl}
+              className="px-4 py-2 rounded-lg bg-white/10 hover:bg-white/20 border text-sm font-semibold"
+              style={{ border: borderSoft }}
+            >
+              Try the Demo
+            </a>
+
+            <a
+              href={base}
+              className="px-4 py-2 rounded-lg bg-white/10 hover:bg-white/20 border text-sm font-semibold"
+              style={{ border: borderSoft }}
+            >
+              Home
+            </a>
+          </div>
+        </div>
+
+        <div className="max-w-6xl mx-auto px-5 pt-10 pb-12">
+          <div
+            className="rounded-3xl bg-black/25 p-6 md:p-10 shadow-[0_0_60px_rgba(0,0,0,0.35)]"
+            style={{ border: borderAccent }}
+          >
+            <h1
+              className="text-3xl md:text-4xl font-extrabold font-display tracking-wide"
+              style={{ color: ACCENT }}
+            >
+              {content.title}
+            </h1>
+
+            <div className="mt-6">{content.body}</div>
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="max-w-6xl mx-auto px-5 pb-10">
+          <div className="border-t border-white/10 pt-8 flex flex-col md:flex-row gap-6 md:items-center md:justify-between text-sm opacity-80">
+            <div>© {new Date().getFullYear()} Poker Clock Pro</div>
+
+            <div className="flex flex-wrap gap-6">
+              <FooterLink href={`${base}features`}>Features</FooterLink>
+              <FooterLink href={`${base}pricing`}>Pricing</FooterLink>
+              <FooterLink href={demoUrl}>Demo</FooterLink>
+              <FooterLink href={`${base}support`}>Support</FooterLink>
+              <FooterLink href={`${base}privacy`}>Privacy</FooterLink>
+              <FooterLink href={`${base}refund`}>Refund Policy</FooterLink>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ----- HOMEPAGE (your existing landing) -----
   return (
     <div
       className="min-h-screen text-white"
@@ -242,14 +453,16 @@ export default function Landing() {
 
       {/* Footer */}
       <div className="max-w-6xl mx-auto px-5 pb-10">
-        <div className="border-t border-white/10 pt-6 flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between text-sm opacity-70">
+        <div className="border-t border-white/10 pt-8 flex flex-col md:flex-row gap-6 md:items-center md:justify-between text-sm opacity-80">
           <div>© {new Date().getFullYear()} Poker Clock Pro</div>
-          <div className="flex items-center gap-4">
-            <a className="hover:opacity-100" href={demoUrl}>
-              Demo
-            </a>
-            <span className="opacity-30">•</span>
-            <span>Pro version coming soon</span>
+
+          <div className="flex flex-wrap gap-6">
+            <FooterLink href={`${base}features`}>Features</FooterLink>
+            <FooterLink href={`${base}pricing`}>Pricing</FooterLink>
+            <FooterLink href={demoUrl}>Demo</FooterLink>
+            <FooterLink href={`${base}support`}>Support</FooterLink>
+            <FooterLink href={`${base}privacy`}>Privacy</FooterLink>
+            <FooterLink href={`${base}refund`}>Refund Policy</FooterLink>
           </div>
         </div>
       </div>
@@ -274,5 +487,13 @@ function Feature({ title, desc, accent }) {
       </div>
       <div className="mt-1 opacity-70">{desc}</div>
     </div>
+  );
+}
+
+function FooterLink({ href, children }) {
+  return (
+    <a href={href} className="hover:opacity-100 transition-opacity">
+      {children}
+    </a>
   );
 }
