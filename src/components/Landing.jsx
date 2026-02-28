@@ -1,4 +1,8 @@
 import Privacy from "./Privacy";
+import Refund from "./Refund";
+import Support from "./Support";
+import Features from "./Features";
+import Pricing from "./Pricing";
 
 export default function Landing({ page = "home" }) {
   const base = import.meta.env.BASE_URL || "/";
@@ -23,83 +27,17 @@ export default function Landing({ page = "home" }) {
   const PAGES = {
     features: {
       title: "Features",
-      body: (
-        <div className="space-y-4">
-          <p className="opacity-80">
-            Poker Clock Pro is built for a polished home game: big-screen
-            clarity, simple controls, and clean tournament tools.
-          </p>
-          <ul className="list-disc pl-5 space-y-2 opacity-80">
-            <li>Big-screen tournament timer with blinds + breaks</li>
-            <li>Prize pool tools (dealer/bounty deductions supported)</li>
-            <li>Branding: logo upload + themes (Pro)</li>
-            <li>Save/Load tournament configs (Pro)</li>
-            <li>Custom sounds (Pro)</li>
-            <li>Offline-friendly (works great on local networks)</li>
-          </ul>
-          <p className="text-xs opacity-60">
-            Screenshots + a walkthrough video are coming soon.
-          </p>
-        </div>
-      ),
+      body: <Features />,
     },
 
     pricing: {
       title: "Pricing",
-      body: (
-        <div className="space-y-4">
-          <p className="opacity-80">
-            Pricing will be announced at launch. The plan is a simple one-time
-            purchase.
-          </p>
-          <div
-            className="rounded-2xl bg-white/5 p-4"
-            style={{ border: borderSoft }}
-          >
-            <div
-              className="font-semibold"
-              style={{ color: withAlpha(ACCENT, "E6") }}
-            >
-              Free Demo
-            </div>
-            <div className="mt-1 opacity-75">
-              Try the full demo in your browser. Great for testing on a TV.
-            </div>
-
-            <div
-              className="mt-4 font-semibold"
-              style={{ color: withAlpha(ACCENT, "E6") }}
-            >
-              Pro (Coming Soon)
-            </div>
-            <div className="mt-1 opacity-75">
-              Logo upload, themes, save/load configs, and custom sounds.
-            </div>
-          </div>
-        </div>
-      ),
+      body: <Pricing />,
     },
 
     support: {
       title: "Support",
-      body: (
-        <div className="space-y-4">
-          <p className="opacity-80">
-            Need help or found a bug? Here’s the fastest way to get it fixed.
-          </p>
-          <ul className="list-disc pl-5 space-y-2 opacity-80">
-            <li>
-              Include your OS (Windows/Mac), browser, and what you expected to
-              happen
-            </li>
-            <li>Send a screenshot (or a quick phone photo of the TV screen)</li>
-            <li>If it’s audio-related, mention which sounds you’re using</li>
-          </ul>
-          <p className="opacity-80">
-            Email support details will be added at launch.
-          </p>
-        </div>
-      ),
+      body: <Support />,
     },
 
     privacy: {
@@ -109,15 +47,7 @@ export default function Landing({ page = "home" }) {
 
     refund: {
       title: "Refund Policy",
-      body: (
-        <div className="space-y-4 opacity-80">
-          <p>Refund policy will be posted when Pro launches.</p>
-          <p className="text-xs opacity-60">
-            (Replace this with your final refund terms before launch —
-            especially if you sell via Gumroad/Stripe/etc.)
-          </p>
-        </div>
-      ),
+      body: <Refund />,
     },
 
     notfound: {
