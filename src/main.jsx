@@ -17,6 +17,11 @@ function getRelativePath() {
 
 const entry = import.meta.env.VITE_ENTRY || "landing";
 const relPath = getRelativePath();
+console.log("BASE_URL", import.meta.env.BASE_URL);
+console.log("pathname", window.location.pathname);
+console.log("relPath", relPath);
+console.log("landingPage", getLandingPage(relPath));
+console.log("showApp", showApp);
 
 // In PRO builds, always show the app at "/"
 const showApp =
