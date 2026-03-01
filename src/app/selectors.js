@@ -5,7 +5,10 @@ export function computeGrossPrizePool(state) {
 export function computeNetPrizePool(state) {
   const gross = computeGrossPrizePool(state);
   const dealer = Number(state.prize.dealerPay) || 0;
-  const bounty = Number(state.prize.bountyPay) || 0;
+  const bountyPerEntry = Number(state.prize.bountyPay) || 0;
+  const totalEntries =
+    (Number(state.buyIns) || 0) + (Number(state.rebuys) || 0);
+  const bounty = bountyPerEntry * totalEntries;
   return Math.max(0, gross - dealer - bounty);
 }
 
@@ -13,7 +16,11 @@ export function computePayouts(state) {
   const gross = computeGrossPrizePool(state);
 
   const dealerPay = Number(state.prize.dealerPay) || 0;
-  const bountyPay = Number(state.prize.bountyPay) || 0;
+
+  const bountyPerEntry = Number(state.prize.bountyPay) || 0;
+  const totalEntries =
+    (Number(state.buyIns) || 0) + (Number(state.rebuys) || 0);
+  const bountyPay = bountyPerEntry * totalEntries;
 
   const places = Array.isArray(state.prize.places) ? state.prize.places : [];
   const mode = state.prize.mode;

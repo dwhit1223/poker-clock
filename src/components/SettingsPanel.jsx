@@ -654,7 +654,7 @@ export default function SettingsPanel({ state, dispatch }) {
             </div>
 
             <div className="flex justify-between">
-              <span className="opacity-70">Bounty Pay</span>
+              <span className="opacity-70">Bounty Pay (total)</span>
               <span className="font-semibold">-${payoutInfo.bountyPay}</span>
             </div>
 
@@ -695,7 +695,7 @@ export default function SettingsPanel({ state, dispatch }) {
             ariaLabel="Dealer pay"
           />
 
-          <label className="text-sm opacity-80">Bounty Pay ($)</label>
+          <label className="text-sm opacity-80">Bounty Pay (per entry $)</label>
           <NumberInput
             className={inputClass}
             style={{ border: softBorder }}
