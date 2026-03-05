@@ -8,6 +8,9 @@ export default function Landing({ page = "home" }) {
   const base = import.meta.env.BASE_URL || "/";
   const demoUrl = `${base}demo`;
 
+  // Purchase URL
+  const BUY_URL = "https://pokerclockpro.gumroad.com/l/adklaq";
+
   // Brand accents
   const ACCENT = "#D4AF37"; // gold
   const RED = "#C1121F";
@@ -76,7 +79,10 @@ export default function Landing({ page = "home" }) {
         className="min-h-screen text-white"
         style={{
           background: `
-            radial-gradient(circle at center, ${withAlpha(ACCENT, "14")} 0%, rgba(0,0,0,0) 55%),
+            radial-gradient(circle at center, ${withAlpha(
+              ACCENT,
+              "14",
+            )} 0%, rgba(0,0,0,0) 55%),
             radial-gradient(circle at top, rgba(16,185,129,0.12), rgba(3,7,18,1) 70%)
           `,
         }}
@@ -100,6 +106,16 @@ export default function Landing({ page = "home" }) {
               style={{ border: borderSoft }}
             >
               Try the Demo
+            </a>
+
+            <a
+              href={BUY_URL}
+              target="_blank"
+              rel="noreferrer"
+              className="px-4 py-2 rounded-lg text-black text-sm font-extrabold"
+              style={{ backgroundColor: ACCENT }}
+            >
+              Buy Pro
             </a>
 
             <a
@@ -147,13 +163,16 @@ export default function Landing({ page = "home" }) {
     );
   }
 
-  // ----- HOMEPAGE (your existing landing) -----
+  // ----- HOMEPAGE -----
   return (
     <div
       className="min-h-screen text-white"
       style={{
         background: `
-          radial-gradient(circle at center, ${withAlpha(ACCENT, "14")} 0%, rgba(0,0,0,0) 55%),
+          radial-gradient(circle at center, ${withAlpha(
+            ACCENT,
+            "14",
+          )} 0%, rgba(0,0,0,0) 55%),
           radial-gradient(circle at top, rgba(16,185,129,0.12), rgba(3,7,18,1) 70%)
         `,
       }}
@@ -179,16 +198,15 @@ export default function Landing({ page = "home" }) {
             Try the Demo
           </a>
 
-          <div
-            className="px-4 py-2 rounded-lg border text-sm font-semibold"
-            style={{
-              backgroundColor: withAlpha(RED, "14"),
-              border: `1px solid ${withAlpha(RED, "33")}`,
-              color: RED,
-            }}
+          <a
+            href={BUY_URL}
+            target="_blank"
+            rel="noreferrer"
+            className="px-4 py-2 rounded-lg text-black text-sm font-extrabold"
+            style={{ backgroundColor: ACCENT }}
           >
-            Pro version coming soon
-          </div>
+            Buy Pro
+          </a>
         </div>
       </div>
 
@@ -217,15 +235,18 @@ export default function Landing({ page = "home" }) {
                 Launch Free Demo
               </a>
 
-              <div
-                className="px-5 py-3 rounded-xl bg-white/10 border font-semibold"
+              <a
+                href={BUY_URL}
+                target="_blank"
+                rel="noreferrer"
+                className="px-5 py-3 rounded-xl bg-white/10 hover:bg-white/20 border font-semibold"
                 style={{ border: borderAccent }}
               >
-                Pro version coming soon
+                Buy Pro
                 <span className="ml-2 opacity-70 text-sm">
-                  (logo + branding + more)
+                  (branding + presets + more)
                 </span>
-              </div>
+              </a>
             </div>
 
             <div className="mt-8 grid gap-3 sm:grid-cols-2 text-sm">
@@ -249,6 +270,14 @@ export default function Landing({ page = "home" }) {
                 desc="Works great on local networks."
                 accent={ACCENT}
               />
+            </div>
+
+            {/* Optional: subtle support note */}
+            <div className="mt-6 text-xs opacity-60">
+              Support:{" "}
+              <a className="underline hover:opacity-90" href={`${base}support`}>
+                support@thepokerclockpro.com
+              </a>
             </div>
           </div>
 
@@ -298,13 +327,23 @@ export default function Landing({ page = "home" }) {
                 300 / 600
               </div>
 
-              <div className="mt-8">
+              <div className="mt-8 grid gap-3">
                 <a
                   href={demoUrl}
                   className="inline-flex items-center justify-center w-full px-4 py-3 rounded-xl bg-white/10 hover:bg-white/20 border font-semibold"
                   style={{ border: borderAccent }}
                 >
                   Open the Demo →
+                </a>
+
+                <a
+                  href={BUY_URL}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center justify-center w-full px-4 py-3 rounded-xl text-black font-extrabold"
+                  style={{ backgroundColor: ACCENT }}
+                >
+                  Buy Pro →
                 </a>
               </div>
             </div>
@@ -316,25 +355,26 @@ export default function Landing({ page = "home" }) {
         </div>
       </div>
 
-      {/* Notify section */}
+      {/* Updates section (replaces "coming soon" notify copy) */}
       <div className="max-w-6xl mx-auto px-5 pb-12">
         <div
           className="rounded-3xl bg-black/25 p-6 md:p-8 shadow-[0_0_60px_rgba(0,0,0,0.35)]"
           style={{ border: borderAccent }}
         >
           <div className="text-sm opacity-70 tracking-widest">
-            PRO VERSION COMING SOON
+            PRODUCT UPDATES
           </div>
 
           <div
             className="mt-2 text-2xl md:text-3xl font-extrabold font-display"
             style={{ color: ACCENT }}
           >
-            Want an email when Pro launches?
+            Get updates, new features, and release notes.
           </div>
 
           <div className="mt-2 opacity-75">
-            Drop your email and I’ll notify you when Poker Clock Pro is ready.
+            Join the list for occasional product updates—what’s new, what’s
+            improved, and what’s coming next.
           </div>
 
           <form
@@ -358,12 +398,12 @@ export default function Landing({ page = "home" }) {
               className="px-5 py-3 rounded-xl text-black font-extrabold"
               style={{ backgroundColor: ACCENT }}
             >
-              Notify Me
+              Sign Up
             </button>
           </form>
 
           <div className="mt-3 text-xs opacity-60">
-            No spam. Just a launch email.
+            No spam. Occasional updates only.
           </div>
         </div>
       </div>

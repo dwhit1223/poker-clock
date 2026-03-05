@@ -1,6 +1,6 @@
 export default function Privacy() {
   const ACCENT = "#D4AF37";
-  const SUPPORT_EMAIL = "your@email.com";
+  const SUPPORT_EMAIL = "support@thepokerclockpro.com";
 
   return (
     <div className="space-y-6">

@@ -11,8 +11,9 @@ export default function Pricing() {
   const borderAccent = `1px solid ${withAlpha(ACCENT, "33")}`;
   const accentBg = withAlpha(ACCENT, "1F");
 
-  // TODO: set this when ready
-  const CHECKOUT_URL = "#";
+  // Live checkout
+  const CHECKOUT_URL = "https://pokerclockpro.gumroad.com/l/adklaq";
+  const SUPPORT_EMAIL = "support@thepokerclockpro.com";
 
   const pill = {
     backgroundColor: accentBg,
@@ -82,6 +83,17 @@ export default function Pricing() {
               You’ll get updates &amp; fixes as you keep using the app.
             </div>
           </div>
+
+          <div className="mt-6 text-xs opacity-60 leading-relaxed">
+            Questions? Email{" "}
+            <a
+              className="underline hover:opacity-90"
+              href={`mailto:${SUPPORT_EMAIL}`}
+            >
+              {SUPPORT_EMAIL}
+            </a>
+            .
+          </div>
         </div>
 
         {/* Right: price + features */}
@@ -108,6 +120,8 @@ export default function Pricing() {
             <div className="flex gap-3 justify-center md:justify-end">
               <a
                 href={CHECKOUT_URL}
+                target="_blank"
+                rel="noreferrer"
                 className="px-6 py-3 rounded-xl text-black font-extrabold hover:opacity-90"
                 style={{ backgroundColor: ACCENT }}
               >
@@ -160,9 +174,28 @@ export default function Pricing() {
                 Quick troubleshooting + help getting set up.
               </div>
               <div className="mt-2 text-xs opacity-75">
-                Visit the support page for the fastest help.
+                Visit the support page for the fastest help — or email{" "}
+                <a
+                  className="underline hover:opacity-90"
+                  href={`mailto:${SUPPORT_EMAIL}`}
+                >
+                  {SUPPORT_EMAIL}
+                </a>
+                .
               </div>
             </div>
+          </div>
+
+          <div className="mt-6 flex justify-center md:justify-start">
+            <a
+              href={CHECKOUT_URL}
+              target="_blank"
+              rel="noreferrer"
+              className="px-6 py-3 rounded-xl bg-white/10 hover:bg-white/20 border font-semibold"
+              style={{ border: borderAccent }}
+            >
+              Buy Pro →
+            </a>
           </div>
 
           <div className="mt-4 text-xs opacity-60">

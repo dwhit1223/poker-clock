@@ -1,0 +1,81 @@
+============================================================
+                         LICENSE
+============================================================
+
+Product: Poker Clock Pro
+Version: 1.0.0
+© 2026 Poker Clock Pro
+All Rights Reserved
+
+
+------------------------------------------------------------
+OWNERSHIP
+------------------------------------------------------------
+
+Poker Clock Pro is proprietary software.
+
+All rights, title, and interest in and to the software,
+including but not limited to source code, design, audio,
+visual elements, and documentation, remain the exclusive
+property of Poker Clock Pro.
+
+
+------------------------------------------------------------
+PERMITTED USE
+------------------------------------------------------------
+
+You are granted a non-exclusive, non-transferable license
+to use Poker Clock Pro for personal or commercial use
+within your own poker events.
+
+You may:
+
+• Use the software on your own computer
+• Display it publicly during tournaments
+• Create and save configuration files
+
+
+------------------------------------------------------------
+RESTRICTIONS
+------------------------------------------------------------
+
+You may NOT:
+
+• Redistribute the software
+• Resell or sublicense the software
+• Reverse engineer or decompile the software
+• Modify or create derivative works
+• Remove branding or copyright notices
+
+
+------------------------------------------------------------
+UPDATES
+------------------------------------------------------------
+
+Future updates may be released at the discretion of the
+developer. Updates may require proof of purchase.
+
+
+------------------------------------------------------------
+NO WARRANTY
+------------------------------------------------------------
+
+The software is provided "AS IS" without warranty of any
+kind, either expressed or implied, including but not limited
+to merchantability or fitness for a particular purpose.
+
+The developer shall not be liable for any damages arising
+from the use of this software.
+
+
+------------------------------------------------------------
+CONTACT
+------------------------------------------------------------
+
+For licensing inquiries:
+support@thepokerclockpro.com
+
+
+============================================================
+                     END OF LICENSE
+============================================================
