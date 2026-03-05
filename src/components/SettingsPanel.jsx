@@ -11,7 +11,7 @@ import { PRO_ENABLED } from "../app/pro";
 import { THEMES } from "../app/themes";
 
 export default function SettingsPanel({ state, dispatch }) {
-  const UPGRADE_URL = "https://YOUR-LINK-HERE";
+  const UPGRADE_URL = "https://pokerclockpro.gumroad.com/l/adklaq";
   const payoutInfo = computePayouts(state);
 
   if (!state.ui.settingsOpen) return null;
