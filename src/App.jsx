@@ -2,6 +2,7 @@ import { useEffect, useReducer } from "react";
 import { createInitialState } from "./app/initialState";
 import { reducer } from "./app/reducer";
 import Dashboard from "./components/Dashboard";
+import Seo from "./components/Seo";
 import {
   playBlindUpSound,
   playBreakSound,
@@ -43,5 +44,16 @@ export default function App() {
     playOneMinuteSound();
   }, [state.ui.oneMinuteWarnedRoundIndex]);
 
-  return <Dashboard state={state} dispatch={dispatch} />;
+  return (
+    <>
+      <Seo
+        title="Free Demo | Poker Clock Pro"
+        description="Try the free Poker Clock Pro demo and see a TV-friendly poker tournament clock with blinds, breaks, and tournament tools."
+        path="/demo"
+        robots="index,follow,max-image-preview:large"
+      />
+
+      <Dashboard state={state} dispatch={dispatch} />
+    </>
+  );
 }

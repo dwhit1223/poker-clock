@@ -3,6 +3,7 @@ import Refund from "./Refund";
 import Support from "./Support";
 import Features from "./Features";
 import Pricing from "./Pricing";
+import Seo from "./Seo";
 
 export default function Landing({ page = "home" }) {
   const base = import.meta.env.BASE_URL || "/";
@@ -25,6 +26,55 @@ export default function Landing({ page = "home" }) {
   const borderSoft = "1px solid rgba(255,255,255,0.10)";
   const borderAccent = `1px solid ${withAlpha(ACCENT, "33")}`; // ~20%
   const accentSoftBg = withAlpha(ACCENT, "14"); // ~8%
+
+  const SEO = {
+    home: {
+      title: "Poker Clock Pro | Poker Tournament Clock and Blind Timer",
+      description:
+        "Poker Clock Pro is a poker tournament clock and blind timer built for home games and poker clubs. Run blinds, breaks, and prize pool calculations on a TV-friendly display.",
+      path: "/",
+      robots: "index,follow,max-image-preview:large",
+    },
+    features: {
+      title: "Features | Poker Clock Pro",
+      description:
+        "Explore Poker Clock Pro features including blind timers, break management, prize pool tools, TV-friendly layouts, custom branding, custom sounds, and preset support.",
+      path: "/features",
+      robots: "index,follow,max-image-preview:large",
+    },
+    pricing: {
+      title: "Pricing | Poker Clock Pro",
+      description:
+        "View Poker Clock Pro pricing for the free demo and Pro version. Compare features and choose the poker tournament clock that fits your game.",
+      path: "/pricing",
+      robots: "index,follow,max-image-preview:large",
+    },
+    support: {
+      title: "Support | Poker Clock Pro",
+      description:
+        "Get support for Poker Clock Pro, including setup help, troubleshooting, and product questions for your poker tournament clock.",
+      path: "/support",
+      robots: "index,follow,max-image-preview:large",
+    },
+    privacy: {
+      title: "Privacy Policy | Poker Clock Pro",
+      description: "Read the Poker Clock Pro privacy policy.",
+      path: "/privacy",
+      robots: "index,follow,max-image-preview:large",
+    },
+    refund: {
+      title: "Refund Policy | Poker Clock Pro",
+      description: "Read the Poker Clock Pro refund policy.",
+      path: "/refund",
+      robots: "index,follow,max-image-preview:large",
+    },
+    notfound: {
+      title: "Page Not Found | Poker Clock Pro",
+      description: "The page you requested could not be found.",
+      path: "/404",
+      robots: "noindex,follow",
+    },
+  };
 
   // ----- STATIC PAGES (footer links) -----
   const PAGES = {
@@ -73,6 +123,7 @@ export default function Landing({ page = "home" }) {
   // If not the homepage, render a simple static page shell
   if (page !== "home") {
     const content = PAGES[page] || PAGES.notfound;
+    const seo = SEO[page] || SEO.notfound;
 
     return (
       <div
@@ -87,6 +138,13 @@ export default function Landing({ page = "home" }) {
           `,
         }}
       >
+        <Seo
+          title={seo.title}
+          description={seo.description}
+          path={seo.path}
+          robots={seo.robots}
+        />
+
         {/* Top bar */}
         <div className="max-w-6xl mx-auto px-5 pt-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div className="flex flex-col items-end">
@@ -177,6 +235,13 @@ export default function Landing({ page = "home" }) {
         `,
       }}
     >
+      <Seo
+        title={SEO.home.title}
+        description={SEO.home.description}
+        path={SEO.home.path}
+        robots={SEO.home.robots}
+      />
+
       {/* Top bar */}
       <div className="max-w-6xl mx-auto px-5 pt-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div className="flex flex-col items-end">
@@ -218,12 +283,13 @@ export default function Landing({ page = "home" }) {
               className="text-4xl md:text-5xl font-extrabold font-display tracking-wide"
               style={{ color: ACCENT }}
             >
-              Run a clean, professional poker tournament.
+              Poker Tournament Clock for Home Games and Poker Clubs
             </h1>
 
             <p className="mt-4 text-lg opacity-80 leading-relaxed">
-              A big-screen tournament clock with blinds, breaks, and prize pool
-              tools—built for home games and poker clubs.
+              A big-screen poker tournament clock and blind timer with breaks,
+              prize pool tools, and a TV-friendly display—built for home games,
+              poker clubs, and recurring live tournaments.
             </p>
 
             <div className="mt-8 flex flex-wrap items-center gap-3">
@@ -272,7 +338,6 @@ export default function Landing({ page = "home" }) {
               />
             </div>
 
-            {/* Optional: subtle support note */}
             <div className="mt-6 text-xs opacity-60">
               Support:{" "}
               <a className="underline hover:opacity-90" href={`${base}support`}>
@@ -355,7 +420,7 @@ export default function Landing({ page = "home" }) {
         </div>
       </div>
 
-      {/* Updates section (replaces "coming soon" notify copy) */}
+      {/* Updates section */}
       <div className="max-w-6xl mx-auto px-5 pb-12">
         <div
           className="rounded-3xl bg-black/25 p-6 md:p-8 shadow-[0_0_60px_rgba(0,0,0,0.35)]"
