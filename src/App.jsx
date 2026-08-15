@@ -92,7 +92,7 @@ export default function App() {
   return (
     <>
       <Seo
-        title="Free Demo | Poker Clock Pro"
+        title={PRO_ENABLED ? "Poker Clock Pro" : "Free Demo | Poker Clock Pro"}
         description="Try the free Poker Clock Pro demo and see a TV-friendly poker tournament clock with blinds, breaks, and tournament tools."
         path="/demo"
         robots="index,follow,max-image-preview:large"
