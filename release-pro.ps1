@@ -280,6 +280,47 @@ def is_activated():
     d = read_license()
     return bool(d and d.get("activated") is True)
 
+# --------------------------
+# Local app state files (tournament recovery, Pro preferences)
+# --------------------------
+# Separate from license.json and from each other on purpose: tournament
+# state is written frequently while a clock is running, preferences
+# (theme/logo/custom sounds) are written rarely but may be larger, and
+# neither should ever cause a rewrite of the other.
+
+def state_path(name: str):
+    return os.path.join(get_log_dir(), f"{name}.json")
+
+def read_state_file(name: str):
+    try:
+        with open(state_path(name), "r", encoding="utf-8") as f:
+            return json.load(f)
+    except Exception:
+        return None
+
+def write_state_file(name: str, data: dict):
+    os.makedirs(get_log_dir(), exist_ok=True)
+    tmp = state_path(name) + ".tmp"
+    with open(tmp, "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False)
+
+    # Windows (unlike POSIX) can transiently refuse to replace a file
+    # that another thread has open for reading at that exact instant --
+    # e.g. a page-load GET racing a periodic autosave POST, both served
+    # by ThreadingHTTPServer on separate threads. A few short retries
+    # clears this in practice; if it still fails, the exception
+    # propagates to the caller's existing error handling (logged,
+    # non-fatal -- the next scheduled save retries on its own).
+    last_err = None
+    for attempt in range(5):
+        try:
+            os.replace(tmp, state_path(name))
+            return
+        except OSError as e:
+            last_err = e
+            time.sleep(0.05 * (attempt + 1))
+    raise last_err
+
 def json_response(handler, obj: dict, status=200):
     b = json.dumps(obj).encode("utf-8")
     handler.send_response(status)
@@ -323,6 +364,12 @@ class LoggingHandler(http.server.SimpleHTTPRequestHandler):
     def do_GET(self):
         if self.path == "/api/license/status":
             return json_response(self, {"ok": True, "activated": is_activated()}, 200)
+        if self.path == "/api/state/tournament":
+            data = read_state_file("tournament")
+            return json_response(self, {"found": data is not None, "payload": data}, 200)
+        if self.path == "/api/state/preferences":
+            data = read_state_file("preferences")
+            return json_response(self, {"found": data is not None, "payload": data}, 200)
         return super().do_GET()
 
     def do_POST(self):
@@ -374,6 +421,18 @@ class LoggingHandler(http.server.SimpleHTTPRequestHandler):
             except Exception:
                 log("ACTIVATE ERROR:\n" + traceback.format_exc())
                 return json_response(self, {"ok": False, "error": "Activation failed."}, 500)
+
+        if self.path in ("/api/state/tournament", "/api/state/preferences"):
+            name = "tournament" if self.path == "/api/state/tournament" else "preferences"
+            try:
+                length = int(self.headers.get("Content-Length", "0"))
+                raw = self.rfile.read(length) if length > 0 else b"{}"
+                body = json.loads(raw.decode("utf-8", errors="ignore") or "{}")
+                write_state_file(name, body)
+                return json_response(self, {"ok": True}, 200)
+            except Exception:
+                log(f"STATE WRITE ERROR ({name}):\n" + traceback.format_exc())
+                return json_response(self, {"ok": False}, 500)
 
         return super().do_POST()
 

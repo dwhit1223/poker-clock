@@ -1,3 +1,5 @@
+import { createInitialState } from "./initialState";
+
 export function computeGrossPrizePool(state) {
   return state.buyIns * state.buyInValue + state.rebuys * state.rebuyValue;
 }
@@ -103,6 +105,22 @@ export function getNextBlindRound(state) {
 }
 export function countBlindRounds(state) {
   return state.blinds.filter((r) => r?.type === "blind").length;
+}
+
+// Used to decide whether a destructive action (Reset, template switch)
+// needs confirmation. "Meaningful" means the operator has actually
+// started doing something with this tournament -- not just opened the
+// app and browsed options. createInitialState() ships with a non-zero
+// default buyIns (a starting headcount, not "zero progress"), so this
+// must compare against that default rather than against a literal 0.
+export function hasMeaningfulProgress(state) {
+  const initial = createInitialState();
+  return (
+    state.timer.status !== "idle" ||
+    state.currentRoundIndex > 0 ||
+    state.buyIns !== initial.buyIns ||
+    state.rebuys !== initial.rebuys
+  );
 }
 
 export function getDisplayedBlindLevel(state) {

@@ -1,5 +1,5 @@
 import { BLIND_TEMPLATES } from "../app/templates";
-import { computePayouts } from "../app/selectors";
+import { computePayouts, hasMeaningfulProgress } from "../app/selectors";
 import NumberInput from "./NumberInput";
 import {
   unlockAudio,
@@ -852,6 +852,14 @@ export default function SettingsPanel({ state, dispatch }) {
             }}
             onChange={(e) => {
               const key = e.target.value;
+              if (
+                hasMeaningfulProgress(state) &&
+                !window.confirm(
+                  "Switching templates will replace the blind structure and restart the clock at Level 1. Buy-ins and prize settings will be kept. Continue?",
+                )
+              ) {
+                return;
+              }
               dispatch({
                 type: "SET_TEMPLATE",
                 rounds: BLIND_TEMPLATES[key].rounds,

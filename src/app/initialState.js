@@ -51,6 +51,7 @@ export function createInitialState() {
     timer: {
       status: "idle", // idle | running | paused | finished
       remainingSec: template.rounds[0]?.durationSec ?? 0,
+      endsAtMs: null,
       lastTickMs: null,
     },
 
@@ -61,6 +62,13 @@ export function createInitialState() {
 
       // used to ensure the "1 minute remaining" sound plays once per round
       oneMinuteWarnedRoundIndex: null,
+
+      // Separate from oneMinuteWarnedRoundIndex: only a genuine real-time
+      // crossing sets this (see reducer.js). Restoring a saved tournament
+      // can set oneMinuteWarnedRoundIndex directly (to suppress a future
+      // false warning) without ever setting this, so restore never
+      // replays the sound.
+      oneMinuteWarningEventAt: null,
     },
   };
 }

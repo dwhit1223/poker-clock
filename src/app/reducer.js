@@ -1,5 +1,38 @@
 import { PRO_ENABLED } from "./pro";
 
+// Given a blind structure, a starting round index, and the timestamp the
+// current round is scheduled to end at, walk forward through however many
+// rounds have elapsed by `nowMs`. This is the single source of truth for
+// "what round/remaining-time is it right now" -- used both by ordinary
+// 250ms ticking (TIMER_TICK) and by one-time restore-time catch-up
+// (RESTORE_TOURNAMENT), so a long-elapsed gap (app closed for 25 minutes)
+// is handled with exactly the same math as a normal tick, just a bigger
+// jump in a single call.
+export function advanceToNow(blinds, startIndex, endsAtMs, nowMs) {
+  let idx = startIndex;
+  let transitioned = false;
+
+  // Track remaining time in ms, carrying any overshoot forward into each
+  // newly-entered round rather than resetting to that round's full
+  // duration. For a normal 250ms tick the overshoot is well under a
+  // second and invisible after rounding; for a large restore-time gap
+  // (potentially spanning several rounds) this is the difference between
+  // landing at the correct remaining time and always landing at a fresh
+  // full round.
+  let remainingMs = endsAtMs - nowMs;
+
+  while (remainingMs <= 0 && idx < blinds.length - 1) {
+    idx += 1;
+    remainingMs += (blinds[idx]?.durationSec ?? 0) * 1000;
+    transitioned = true;
+  }
+
+  const finished = remainingMs <= 0 && idx === blinds.length - 1;
+  const remaining = finished ? 0 : Math.max(0, Math.ceil(remainingMs / 1000));
+
+  return { idx, remaining, transitioned, finished };
+}
+
 export function reducer(state, action) {
   switch (action.type) {
     // -----------------------------
@@ -251,7 +284,15 @@ export function reducer(state, action) {
         timer: {
           status: "idle",
           remainingSec: rounds[idx]?.durationSec ?? 0,
+          endsAtMs: null,
           lastTickMs: null,
+        },
+        ui: {
+          ...state.ui,
+          flash: false,
+          lastTransitionAt: null,
+          oneMinuteWarningEventAt: null,
+          oneMinuteWarnedRoundIndex: null,
         },
       };
     }
@@ -401,12 +442,14 @@ export function reducer(state, action) {
         timer: {
           status: "idle",
           remainingSec: firstRound?.durationSec ?? 0,
+          endsAtMs: null,
           lastTickMs: null,
         },
         ui: {
           ...state.ui,
           flash: false,
           lastTransitionAt: null,
+          oneMinuteWarningEventAt: null,
           oneMinuteWarnedRoundIndex: null,
         },
       };
@@ -493,22 +536,14 @@ export function reducer(state, action) {
 
       const nowMs = action.nowMs ?? Date.now();
 
-      let remaining = Math.max(
-        0,
-        Math.ceil((state.timer.endsAtMs - nowMs) / 1000),
+      const { idx, remaining, transitioned, finished } = advanceToNow(
+        state.blinds,
+        state.currentRoundIndex,
+        state.timer.endsAtMs,
+        nowMs,
       );
 
-      let idx = state.currentRoundIndex;
-      let transitioned = false;
-
-      while (remaining <= 0 && idx < state.blinds.length - 1) {
-        idx += 1;
-        const dur = state.blinds[idx]?.durationSec ?? 0;
-        remaining = dur;
-        transitioned = true;
-      }
-
-      if (remaining <= 0 && idx === state.blinds.length - 1) {
+      if (finished) {
         return {
           ...state,
           currentRoundIndex: idx,
@@ -562,7 +597,11 @@ export function reducer(state, action) {
               oneMinuteWarnedRoundIndex: null,
             }
           : shouldWarn
-            ? { ...state.ui, oneMinuteWarnedRoundIndex: idx }
+            ? {
+                ...state.ui,
+                oneMinuteWarnedRoundIndex: idx,
+                oneMinuteWarningEventAt: nowMs,
+              }
             : state.ui,
       };
     }
@@ -573,11 +612,183 @@ export function reducer(state, action) {
         ui: {
           ...state.ui,
           oneMinuteWarnedRoundIndex: action.roundIndex,
+          oneMinuteWarningEventAt: action.nowMs ?? Date.now(),
         },
       };
 
     case "CLEAR_FLASH":
       return { ...state, ui: { ...state.ui, flash: false } };
+
+    // -----------------------------
+    // Live session recovery (persistence)
+    // -----------------------------
+    // Restores a previously autosaved tournament. Distinct from
+    // IMPORT_CONFIG: this restores THIS event's progress (buy-ins,
+    // round, timer), not a reusable setup. Restore is always silent --
+    // it never sets ui.flash/lastTransitionAt, so no blind-up/break
+    // sound replays for transitions that happened while the app was
+    // closed (see RESTORE_TOURNAMENT below for the one-minute-warning
+    // suppression logic).
+    case "RESTORE_TOURNAMENT": {
+      const snap = action.snapshot;
+      if (!snap) return state;
+
+      const nowMs = action.nowMs ?? Date.now();
+
+      const blinds =
+        Array.isArray(snap.blinds) && snap.blinds.length > 0
+          ? snap.blinds
+          : state.blinds;
+
+      const boundedIndex = Math.min(
+        Math.max(0, Number(snap.currentRoundIndex) || 0),
+        blinds.length - 1,
+      );
+
+      const base = {
+        ...state,
+        title: snap.title ?? state.title,
+        buyInValue: snap.buyInValue ?? state.buyInValue,
+        rebuyValue: snap.rebuyValue ?? state.rebuyValue,
+        buyIns: snap.buyIns ?? state.buyIns,
+        rebuys: snap.rebuys ?? state.rebuys,
+        prize: snap.prize ?? state.prize,
+        blinds,
+      };
+
+      const savedStatus = snap.timer?.status;
+
+      // Paused tournaments are frozen: restore the same round and the
+      // same remainingSec verbatim, regardless of how long the app was
+      // closed. No wall-clock math -- endsAtMs was already null when
+      // this was saved, and stays null.
+      if (savedStatus === "paused") {
+        const remainingSec = Math.max(
+          0,
+          Number(snap.timer.remainingSec) || 0,
+        );
+        const isBlind = blinds[boundedIndex]?.type === "blind";
+
+        return {
+          ...base,
+          currentRoundIndex: boundedIndex,
+          timer: {
+            status: "paused",
+            remainingSec,
+            endsAtMs: null,
+            lastTickMs: null,
+          },
+          ui: {
+            ...state.ui,
+            flash: false,
+            lastTransitionAt: null,
+            oneMinuteWarningEventAt: null,
+            oneMinuteWarnedRoundIndex:
+              isBlind && remainingSec <= 60 ? boundedIndex : null,
+          },
+        };
+      }
+
+      // Running tournaments: endsAtMs is the authoritative timing
+      // reference. Reuse the exact same round-advance math TIMER_TICK
+      // uses every 250ms -- just fed a larger elapsed gap in one call --
+      // so a multi-level, multi-break catch-up is handled identically
+      // to normal ticking, not a second implementation.
+      if (savedStatus === "running" && snap.timer?.endsAtMs) {
+        const { idx, remaining, transitioned, finished } = advanceToNow(
+          blinds,
+          boundedIndex,
+          snap.timer.endsAtMs,
+          nowMs,
+        );
+
+        if (finished) {
+          return {
+            ...base,
+            currentRoundIndex: idx,
+            timer: {
+              status: "finished",
+              remainingSec: 0,
+              endsAtMs: null,
+              lastTickMs: null,
+            },
+            ui: {
+              ...state.ui,
+              flash: false,
+              lastTransitionAt: null,
+              oneMinuteWarningEventAt: null,
+              oneMinuteWarnedRoundIndex: null,
+            },
+          };
+        }
+
+        const effectiveEndsAtMs = transitioned
+          ? nowMs + remaining * 1000
+          : snap.timer.endsAtMs;
+        const isBlind = blinds[idx]?.type === "blind";
+
+        return {
+          ...base,
+          currentRoundIndex: idx,
+          timer: {
+            status: "running",
+            remainingSec: remaining,
+            endsAtMs: effectiveEndsAtMs,
+            lastTickMs: null,
+          },
+          ui: {
+            ...state.ui,
+            flash: false,
+            lastTransitionAt: null,
+            oneMinuteWarningEventAt: null,
+            oneMinuteWarnedRoundIndex:
+              isBlind && remaining <= 60 ? idx : null,
+          },
+        };
+      }
+
+      // Idle or finished: no time-based recovery needed, just restore
+      // position and values as they were.
+      return {
+        ...base,
+        currentRoundIndex: boundedIndex,
+        timer: {
+          status: savedStatus === "finished" ? "finished" : "idle",
+          remainingSec: Math.max(
+            0,
+            Number(snap.timer?.remainingSec) ||
+              blinds[boundedIndex]?.durationSec ||
+              0,
+          ),
+          endsAtMs: null,
+          lastTickMs: null,
+        },
+        ui: {
+          ...state.ui,
+          flash: false,
+          lastTransitionAt: null,
+          oneMinuteWarningEventAt: null,
+          oneMinuteWarnedRoundIndex: null,
+        },
+      };
+    }
+
+    // Restores Pro presentation settings (theme/logo/custom sounds).
+    // Deliberately separate from RESTORE_TOURNAMENT -- these persist on
+    // their own schedule and are never part of the tournament snapshot.
+    case "RESTORE_PREFERENCES": {
+      if (!PRO_ENABLED) return state;
+
+      const prefs = action.preferences;
+      if (!prefs) return state;
+
+      return {
+        ...state,
+        theme: prefs.theme ?? state.theme,
+        logoDataUrl: prefs.logoDataUrl ?? null,
+        sounds: prefs.sounds ?? state.sounds,
+      };
+    }
 
     // -----------------------------
     // Config export/import (Pro)
@@ -642,6 +853,7 @@ export function reducer(state, action) {
         timer: {
           status: "idle",
           remainingSec: firstRound?.durationSec ?? 0,
+          endsAtMs: null,
           lastTickMs: null,
         },
 
@@ -649,6 +861,7 @@ export function reducer(state, action) {
           ...state.ui,
           flash: false,
           lastTransitionAt: null,
+          oneMinuteWarningEventAt: null,
           oneMinuteWarnedRoundIndex: null,
         },
       };

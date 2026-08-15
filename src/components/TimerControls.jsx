@@ -1,4 +1,5 @@
 import { unlockAudio } from "../lib/sound";
+import { hasMeaningfulProgress } from "../app/selectors";
 
 function CircleButton({
   children,
@@ -47,7 +48,17 @@ export default function TimerControls({ state, dispatch }) {
     <div className="mt-14 flex items-center justify-center gap-12">
       <CircleButton
         title="Reset tournament"
-        onClick={() => dispatch({ type: "TIMER_RESET" })}
+        onClick={() => {
+          if (
+            hasMeaningfulProgress(state) &&
+            !window.confirm(
+              "Reset will clear buy-ins and restart the clock from Level 1. This can't be undone. Continue?",
+            )
+          ) {
+            return;
+          }
+          dispatch({ type: "TIMER_RESET" });
+        }}
         label="RESET"
       >
         ⟲
