@@ -2,6 +2,7 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import App from "./App";
 import Landing from "./components/Landing";
+import { resolveTarget } from "./app/pro";
 import "./index.css";
 
 function getRelativePath() {
@@ -39,12 +40,14 @@ function getLandingPage(pathname) {
   return "notfound";
 }
 
-const entry = import.meta.env.VITE_ENTRY || "landing";
+const target = resolveTarget(import.meta.env.VITE_TARGET);
 const relPath = getRelativePath();
 
 // In PRO builds, always show the app at "/"
 const showApp =
-  entry === "pro" ? true : relPath === "/demo" || relPath.startsWith("/demo/");
+  target === "pro"
+    ? true
+    : relPath === "/demo" || relPath.startsWith("/demo/");
 
 const landingPage = getLandingPage(relPath);
 

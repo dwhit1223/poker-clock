@@ -8,9 +8,8 @@
     "build": "vite build",
     "preview": "vite preview",
     "test": "vitest",
-    "build:zip:free": "cross-env VITE_BASE=./ VITE_PRO=false vite build",
-    "build:zip:pro": "cross-env VITE_BASE=./ VITE_PRO=true VITE_ENTRY=pro vite build",
-    "build:pages:free": "cross-env VITE_BASE=/ VITE_PRO=false VITE_ENTRY=landing vite build"
+    "build:zip:pro": "cross-env VITE_BASE=./ VITE_TARGET=pro vite build",
+    "build:pages:free": "cross-env VITE_BASE=/ VITE_TARGET=site vite build"
   },
   "dependencies": {
     "react": "^18.3.1",

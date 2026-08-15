@@ -29,10 +29,8 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Build
-        run: npm run build
-        env:
-          VITE_BASE: "/"
+      - name: Build (site + free demo)
+        run: npm run build:pages:free
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
