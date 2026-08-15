@@ -324,7 +324,7 @@ export default function Landing({ page = "home" }) {
               />
               <Feature
                 title="Offline-friendly"
-                desc="Works great on local networks."
+                desc="One-time online activation, then runs fully offline."
                 accent={ACCENT}
               />
             </div>

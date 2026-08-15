@@ -49,7 +49,7 @@ export default function Support() {
 
         <QA
           q="Does it require internet?"
-          a="No. Poker Clock Pro runs locally on your Windows computer. Internet is only needed to download the ZIP file."
+          a="Internet is required once, to activate your license after purchase. After that, Poker Clock Pro runs fully offline on your Windows computer."
         />
 
         <QA
@@ -70,7 +70,7 @@ export default function Support() {
 
         <QA
           q="Can I use it on multiple computers?"
-          a="Yes — for your own events and poker club. Please do not redistribute the software."
+          a="Yes — each license can be activated on up to 2 computers. Need a 3rd for a legitimate reason (like replacing hardware)? Email support and we'll help."
         />
 
         <QA

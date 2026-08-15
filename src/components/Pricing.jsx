@@ -60,7 +60,8 @@ export default function Pricing() {
                 <span style={{ color: ACCENT }} className="font-semibold">
                   Offline
                 </span>{" "}
-                local app (ZIP download + EXE launcher)
+                local app (ZIP download + EXE launcher). One-time online
+                activation required — runs offline after that.
               </span>
             </li>
             <li className="flex gap-3">

@@ -82,6 +82,7 @@ import re
 import json
 import urllib.request
 import urllib.parse
+import urllib.error
 
 APP_NAME = "Poker Clock"
 START_PORT = 5173
@@ -90,9 +91,11 @@ START_PORT = 5173
 # Gumroad Licensing (Simple)
 # =========================
 # Product URL: https://pokerclockpro.gumroad.com/l/adklaq
-GUMROAD_PERMALINK = "adklaq"
 # Gumroad REQUIRED product_id for license verification (provided by Gumroad error message)
 GUMROAD_PRODUCT_ID = "xcjHxXOrQ5aAXSmsT5Fu7g=="
+
+# Maximum number of computers a single license may be activated on.
+MAX_ACTIVATIONS = 2
 
 # Logging mode:
 # - Set to True if you want extra debugging for a customer issue.
@@ -125,11 +128,15 @@ def alert_windows(message: str):
     except Exception:
         pass
 
-def _gumroad_verify_request(params: dict):
-    url = "https://api.gumroad.com/v2/licenses/verify"
+def _gumroad_verify_request(license_key: str, increment: bool):
+    params = {
+        "product_id": GUMROAD_PRODUCT_ID,
+        "license_key": license_key,
+        "increment_uses_count": "true" if increment else "false",
+    }
     form = urllib.parse.urlencode(params).encode("utf-8")
     req = urllib.request.Request(
-        url,
+        "https://api.gumroad.com/v2/licenses/verify",
         data=form,
         method="POST",
         headers={"Content-Type": "application/x-www-form-urlencoded"},
@@ -138,33 +145,71 @@ def _gumroad_verify_request(params: dict):
         body = resp.read().decode("utf-8", errors="ignore")
         return json.loads(body) if body else {}
 
-def gumroad_verify(license_key: str):
+REFUND_MESSAGE = (
+    "This purchase is no longer eligible for activation (refunded or disputed). "
+    "Contact support@thepokerclockpro.com if this seems wrong."
+)
+
+LIMIT_MESSAGE = (
+    "This license has already been activated on the maximum number of "
+    "computers ({limit}) for this purchase. Contact support@thepokerclockpro.com for help."
+).format(limit=MAX_ACTIVATIONS)
+
+def _is_refunded(purchase: dict) -> bool:
+    return bool(
+        purchase.get("refunded") or purchase.get("chargebacked") or purchase.get("disputed")
+    )
+
+def activate_license(license_key: str):
     """
-    Verify a Gumroad license key. No uses/device tracking.
-    Uses product_id (required for this product). Includes a permalink fallback.
+    Two-step check-then-commit activation.
+
+    1) Verify WITHOUT incrementing uses. Reject invalid keys, refunded /
+       disputed / chargebacked purchases, and licenses already at
+       MAX_ACTIVATIONS -- none of this consumes an activation slot.
+    2) Only if still eligible, verify again WITH increment to actually
+       consume one slot. The caller only writes the local activation
+       record after this second call succeeds.
+
+    Returns (ok: bool, error: str | None). May raise the same exceptions
+    as urllib.request.urlopen (HTTPError, URLError, socket.timeout) or a
+    JSON-decoding error -- the caller (do_POST) handles those as
+    Gumroad-reachability failures.
     """
     lk = (license_key or "").strip()
 
-    data = _gumroad_verify_request({
-        "product_id": GUMROAD_PRODUCT_ID,
-        "license_key": lk,
-        "increment_uses_count": "false",
-    })
-    if data.get("success"):
-        return data
+    data = _gumroad_verify_request(lk, increment=False)
 
-    # If Gumroad explicitly says product_id required, don't bother retrying permalink.
-    msg = (data.get("message") or "").lower()
-    if "product_id" in msg and "required" in msg:
-        return data
+    if not data.get("success"):
+        return False, data.get("message") or "That license key couldn't be verified. Double-check it and try again."
 
-    data2 = _gumroad_verify_request({
-        "product_permalink": GUMROAD_PERMALINK,
-        "license_key": lk,
-        "increment_uses_count": "false",
-    })
-    data2["_first_attempt"] = data
-    return data2
+    if _is_refunded(data.get("purchase") or {}):
+        return False, REFUND_MESSAGE
+
+    uses = data.get("uses")
+    if isinstance(uses, int) and uses >= MAX_ACTIVATIONS:
+        return False, LIMIT_MESSAGE
+
+    # Eligible -- commit by consuming one activation slot.
+    data2 = _gumroad_verify_request(lk, increment=True)
+
+    if not data2.get("success"):
+        return False, data2.get("message") or "Activation failed. Please try again."
+
+    # Defensive re-check: purchase state is re-read on the response that
+    # actually consumed the slot, not assumed from the first call.
+    if _is_refunded(data2.get("purchase") or {}):
+        return False, REFUND_MESSAGE
+
+    final_uses = data2.get("uses")
+    if isinstance(final_uses, int) and final_uses > MAX_ACTIVATIONS:
+        # Rare race: two near-simultaneous activation attempts on the same
+        # key. The slot is already consumed on Gumroad's side by this
+        # point -- log it for diagnostics, but do not revoke or block the
+        # customer who just successfully activated.
+        log(f"WARNING: uses ({final_uses}) exceeded MAX_ACTIVATIONS ({MAX_ACTIVATIONS}) after commit.")
+
+    return True, None
 
 def find_free_port(start=START_PORT, tries=200):
     for port in range(start, start + tries):
@@ -280,12 +325,12 @@ class LoggingHandler(http.server.SimpleHTTPRequestHandler):
                 if is_activated():
                     return json_response(self, {"ok": True, "status": "already_activated"}, 200)
 
-                data = gumroad_verify(license_key)
-                if not data.get("success"):
-                    msg = data.get("message") or "Invalid license key"
+                ok, error = activate_license(license_key)
+
+                if not ok:
                     if VERBOSE_LOGGING:
-                        log("GUMROAD VERIFY FAIL:\n" + json.dumps(data))
-                    return json_response(self, {"ok": False, "error": msg}, 401)
+                        log("GUMROAD VERIFY REJECTED: " + (error or ""))
+                    return json_response(self, {"ok": False, "error": error}, 401)
 
                 write_license({
                     "activated": True,
@@ -302,7 +347,15 @@ class LoggingHandler(http.server.SimpleHTTPRequestHandler):
                     detail = ""
                 # Log details for debugging, but don't show to user
                 log(f"GUMROAD HTTPError: {e}\n{detail}")
-                return json_response(self, {"ok": False, "error": "Activation failed."}, 502)
+                return json_response(self, {"ok": False, "error": "The activation service couldn't be reached. Please try again shortly."}, 502)
+
+            except (urllib.error.URLError, socket.timeout) as e:
+                log(f"GUMROAD NETWORK ERROR: {e}")
+                return json_response(self, {"ok": False, "error": "Poker Clock Pro needs an internet connection to complete activation. Please reconnect and try again."}, 503)
+
+            except (ValueError, json.JSONDecodeError) as e:
+                log(f"GUMROAD MALFORMED RESPONSE: {e}")
+                return json_response(self, {"ok": False, "error": "Activation failed due to an unexpected response. Please try again."}, 502)
 
             except Exception:
                 log("ACTIVATE ERROR:\n" + traceback.format_exc())

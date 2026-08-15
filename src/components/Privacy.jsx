@@ -55,7 +55,10 @@ export default function Privacy() {
       <Section title="Application Data" accent={ACCENT}>
         The Poker Clock Pro application runs locally on your Windows computer.
         It does not transmit tournament data, player data, financial
-        information, or configuration data to any external servers.
+        information, or configuration data to any external servers. The one
+        exception is your license key: during the one-time activation step,
+        it is sent to Gumroad to verify your purchase. After activation, the
+        app runs fully offline and Gumroad is not contacted again.
       </Section>
 
       <Section title="Third-Party Services" accent={ACCENT}>

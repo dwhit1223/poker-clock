@@ -1,8 +1,10 @@
-import { useEffect, useReducer } from "react";
+import { useEffect, useReducer, useState } from "react";
 import { createInitialState } from "./app/initialState";
 import { reducer } from "./app/reducer";
 import Dashboard from "./components/Dashboard";
 import Seo from "./components/Seo";
+import ActivateScreen from "./components/ActivateScreen";
+import { PRO_ENABLED } from "./app/pro";
 import {
   playBlindUpSound,
   playBreakSound,
@@ -11,6 +13,37 @@ import {
 
 export default function App() {
   const [state, dispatch] = useReducer(reducer, null, createInitialState);
+
+  // License activation gate -- Pro builds only. PRO_ENABLED is a
+  // build-time constant (see src/app/pro.js), so this never changes
+  // within a running instance: the free site/demo build never enters
+  // this branch and never calls /api/license/*, structurally, not by
+  // accident.
+  const [licenseChecked, setLicenseChecked] = useState(!PRO_ENABLED);
+  const [activated, setActivated] = useState(!PRO_ENABLED);
+
+  useEffect(() => {
+    if (!PRO_ENABLED) return;
+
+    let cancelled = false;
+
+    fetch("/api/license/status")
+      .then((res) => res.json())
+      .then((data) => {
+        if (cancelled) return;
+        setActivated(!!data.activated);
+        setLicenseChecked(true);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setActivated(false);
+        setLicenseChecked(true);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // tick loop
   useEffect(() => {
@@ -43,6 +76,18 @@ export default function App() {
     if (state.ui.oneMinuteWarnedRoundIndex == null) return;
     playOneMinuteSound();
   }, [state.ui.oneMinuteWarnedRoundIndex]);
+
+  if (PRO_ENABLED && !licenseChecked) {
+    return (
+      <div className="min-h-screen bg-[#030712] text-white flex items-center justify-center">
+        Checking license…
+      </div>
+    );
+  }
+
+  if (PRO_ENABLED && !activated) {
+    return <ActivateScreen onActivated={() => setActivated(true)} />;
+  }
 
   return (
     <>
