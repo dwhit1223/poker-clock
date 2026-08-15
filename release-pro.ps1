@@ -141,9 +141,23 @@ def _gumroad_verify_request(license_key: str, increment: bool):
         method="POST",
         headers={"Content-Type": "application/x-www-form-urlencoded"},
     )
-    with urllib.request.urlopen(req, timeout=8) as resp:
-        body = resp.read().decode("utf-8", errors="ignore")
-        return json.loads(body) if body else {}
+    try:
+        with urllib.request.urlopen(req, timeout=8) as resp:
+            body = resp.read().decode("utf-8", errors="ignore")
+            return json.loads(body) if body else {}
+    except urllib.error.HTTPError as e:
+        # Gumroad returns non-2xx status codes (e.g. 404) for ordinary
+        # verification failures like "that license does not exist" --
+        # the response body is still meaningful JSON in that case, so
+        # parse it exactly like a normal response instead of treating
+        # every non-2xx status as a service outage. Only re-raise (and
+        # let the caller treat it as a real service failure) if the
+        # body genuinely isn't parseable JSON.
+        try:
+            body = e.read().decode("utf-8", errors="ignore")
+            return json.loads(body) if body else {}
+        except (ValueError, json.JSONDecodeError):
+            raise
 
 REFUND_MESSAGE = (
     "This purchase is no longer eligible for activation (refunded or disputed). "
