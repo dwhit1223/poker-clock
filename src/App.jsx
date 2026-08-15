@@ -110,24 +110,26 @@ export default function App() {
   // ---------------------------------------------------------------
   // Autosave -- tournament state.
   //
-  // Two independent triggers:
-  // 1. A ~500ms debounce for meaningful changes -- but keyed on
-  //    everything EXCEPT the continuously-ticking timer.remainingSec/
-  //    endsAtMs fields. Those change roughly once a second while
-  //    running purely from TIMER_TICK; if they were included here,
-  //    this debounce would end up re-firing almost every second on
-  //    its own (still within the stated requirements, but not the
-  //    intended separation, and more writes than needed). Excluding
-  //    them means ordinary running produces zero debounce saves at
-  //    all -- only the interval below governs -- while a real edit
-  //    (buy-in, pause/resume, round change, structure edit, etc.)
-  //    still reaches storage within ~500ms.
-  // 2. A 2s interval, only while running, guaranteeing a save at
+  // Three independent triggers, all funneled through persistence.js's
+  // single-flight save queue (so however many of these fire close
+  // together, the file only ever ends up with the latest one -- see
+  // that file for why that guarantee matters):
+  // 1. A ~500ms debounce for meaningful non-timer edits -- keyed on
+  //    everything EXCEPT timer.status/remainingSec/endsAtMs. Those
+  //    change on their own (ticking, or the dedicated status-change
+  //    save below); this debounce is for buy-ins, blinds, prize,
+  //    title, round changes -- fields that can fire rapidly from
+  //    repeated clicks and benefit from coalescing.
+  // 2. A dedicated, un-debounced save on every timer.status transition
+  //    (start/pause/resume/reset) -- see below. This is the field most
+  //    likely to be immediately followed by closing the app, so it
+  //    skips the 500ms wait entirely.
+  // 3. A 2s interval, only while running, guaranteeing a save at
   //    least that often even if nothing else triggers one.
   //
-  // TIMER_TICK dispatches every 250ms, but neither trigger writes on
-  // every tick: the debounce ignores tick-only changes, and the
-  // interval caps at once per 2s.
+  // TIMER_TICK dispatches every 250ms, but nothing here writes on every
+  // tick: the debounce ignores tick-only changes, and the interval caps
+  // at once per 2s.
   // ---------------------------------------------------------------
   const debounceKey = JSON.stringify([
     state.title,
@@ -138,7 +140,6 @@ export default function App() {
     state.prize,
     state.blinds,
     state.currentRoundIndex,
-    state.timer.status,
   ]);
 
   useEffect(() => {
@@ -146,6 +147,23 @@ export default function App() {
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [debounceKey]);
+
+  // Save immediately (no debounce) on every timer.status transition --
+  // start/pause/resume/reset. This is the field that most needs to survive
+  // an abrupt close: the general 500ms debounce above already covers other
+  // edits eventually, but shrinking "changed the status" -> "on disk" to as
+  // close to zero as possible is what keeps a fast pause-then-close from
+  // being lost. Skips the very first mount so it can't race the
+  // restore-on-mount read above with a fresh-state write before that read
+  // has resolved.
+  const skipFirstStatusSave = useRef(true);
+  useEffect(() => {
+    if (skipFirstStatusSave.current) {
+      skipFirstStatusSave.current = false;
+      return;
+    }
+    saveTournament(stateRef.current);
+  }, [state.timer.status]);
 
   useEffect(() => {
     if (state.timer.status !== "running") return;

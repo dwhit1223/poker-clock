@@ -43,13 +43,66 @@ function lsLoad(key) {
 
 // ---------- Pro local-file backend (via the existing local server) ----------
 
-function fileSave(endpoint, payload) {
+// Per-endpoint single-flight save queue.
+//
+// fetch() is fire-and-forget with no ordering guarantee: nothing stops two
+// concurrent POSTs to the same endpoint from being *processed* out of send
+// order (thread scheduling, or the server's os.replace() retry-loop backoff
+// under file-lock contention can each make a request that was sent earlier
+// finish later). Proven live: an older "running" write held back briefly
+// while a newer "paused" write sails through unaffected lands last and
+// silently overwrites the paused state -- reproducing the exact reopens-
+// as-running bug this queue exists to prevent.
+//
+// The fix is to never let two requests to the same endpoint be in flight at
+// once. While one is in flight, a newer save is held as "pending" (replacing
+// any earlier pending one -- only the latest snapshot ever needs to survive);
+// once the in-flight request settles, the pending one -- whichever is
+// current at that moment -- is sent next. This guarantees send order,
+// server-processing order, and completion order are always the same, so a
+// stale write can never land after a fresher one, regardless of how slow or
+// jittery any individual write is.
+const saveQueues = new Map(); // endpoint -> { inFlight: boolean, pending: object|null }
+
+function sendNow(endpoint, payload, queue) {
+  fetch(endpoint, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+    // Lets the request complete even if the tab is closing right now --
+    // the primary risk window for "pause, then immediately close".
+    keepalive: true,
+  })
+    .catch(() => {})
+    .finally(() => {
+      if (queue.pending) {
+        const next = queue.pending;
+        queue.pending = null;
+        sendNow(endpoint, next, queue);
+      } else {
+        queue.inFlight = false;
+      }
+    });
+}
+
+// Exported so tests can exercise the queueing/ordering guarantee directly
+// against a mocked fetch, independent of the PRO_ENABLED routing in
+// saveTournament() below.
+export function fileSave(endpoint, payload) {
   try {
-    fetch(endpoint, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    }).catch(() => {});
+    let queue = saveQueues.get(endpoint);
+    if (!queue) {
+      queue = { inFlight: false, pending: null };
+      saveQueues.set(endpoint, queue);
+    }
+
+    if (queue.inFlight) {
+      queue.pending = payload;
+      return;
+    }
+
+    queue.inFlight = true;
+    sendNow(endpoint, payload, queue);
   } catch {
     // Non-fatal, same reasoning as lsSave.
   }

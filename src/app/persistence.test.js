@@ -1,10 +1,12 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { reducer, advanceToNow } from "./reducer";
 import { hasMeaningfulProgress } from "./selectors";
 import { createInitialState } from "./initialState";
 import {
   loadTournament,
   saveTournament,
+  buildTournamentSnapshot,
+  fileSave,
   TOURNAMENT_SCHEMA_VERSION,
 } from "../lib/persistence";
 
@@ -463,5 +465,192 @@ describe("loadTournament corruption handling (localStorage path)", () => {
     expect(loaded.tournament.theme).toBeUndefined();
     expect(loaded.tournament.logoDataUrl).toBeUndefined();
     expect(loaded.tournament.sounds).toBeUndefined();
+  });
+});
+
+// ---------------------------------------------------------------------
+// Gate 2 pause-recovery bug: real-user acceptance testing found that a
+// paused tournament could reopen as running. Proven live (see completion
+// report) to be a save-completion-order race: an older in-flight
+// "running" write landing on disk AFTER a newer "paused" write, because
+// neither the client nor the server enforced any ordering. Fixed with a
+// client-side single-flight save queue per endpoint (see fileSave in
+// ../lib/persistence.js). These tests exercise that exact fix.
+// ---------------------------------------------------------------------
+
+describe("Pause -> save -> restore round trip (uses the real reducer + persistence functions, not a hand-built fixture)", () => {
+  it("1. running -> TIMER_PAUSE -> buildTournamentSnapshot -> RESTORE_TOURNAMENT restores paused", () => {
+    const running = reducer(
+      baseState({ timer: { status: "idle", remainingSec: 1200, endsAtMs: null, lastTickMs: null } }),
+      { type: "TIMER_START", nowMs: 1_000_000 },
+    );
+    // 37 seconds of real running time pass.
+    const paused = reducer(running, { type: "TIMER_PAUSE", nowMs: 1_037_000 });
+
+    expect(paused.timer.status).toBe("paused");
+    expect(paused.timer.endsAtMs).toBeNull();
+    expect(paused.timer.remainingSec).toBe(1163); // 1200 - 37
+
+    // This is exactly what saveTournament() sends -- not a hand-built
+    // snapshot -- so the test fails if buildTournamentSnapshot's shape
+    // ever stops matching what RESTORE_TOURNAMENT expects.
+    const persisted = buildTournamentSnapshot(paused);
+    expect(persisted.tournament.timer.status).toBe("paused");
+    expect(persisted.tournament.timer.endsAtMs).toBeNull();
+    expect(persisted.tournament.timer.remainingSec).toBe(1163);
+
+    // 2. Paused remaining time must be unchanged across simulated elapsed
+    // time -- restore an hour "later" and confirm no time was subtracted.
+    const restored = reducer(baseState(), {
+      type: "RESTORE_TOURNAMENT",
+      snapshot: persisted.tournament,
+      nowMs: 1_037_000 + 60 * 60 * 1000,
+    });
+
+    expect(restored.timer.status).toBe("paused");
+    expect(restored.timer.endsAtMs).toBeNull();
+    expect(restored.timer.remainingSec).toBe(1163);
+  });
+
+  it("7. resume after a paused restore starts a fresh, correct endsAtMs from the restored remaining time", () => {
+    const pausedState = baseState({
+      timer: { status: "paused", remainingSec: 483, endsAtMs: null, lastTickMs: null },
+    });
+    const persisted = buildTournamentSnapshot(pausedState);
+
+    const restored = reducer(baseState(), {
+      type: "RESTORE_TOURNAMENT",
+      snapshot: persisted.tournament,
+      nowMs: 5_000_000,
+    });
+    expect(restored.timer.status).toBe("paused");
+    expect(restored.timer.remainingSec).toBe(483);
+
+    const resumed = reducer(restored, { type: "TIMER_RESUME", nowMs: 5_000_000 });
+    expect(resumed.timer.status).toBe("running");
+    expect(resumed.timer.endsAtMs).toBe(5_000_000 + 483 * 1000);
+    expect(resumed.timer.remainingSec).toBe(483);
+
+    // Ticking forward after resume behaves normally from the restored point.
+    const ticked = reducer(resumed, { type: "TIMER_TICK", nowMs: 5_000_000 + 10_000 });
+    expect(ticked.timer.status).toBe("running");
+    expect(ticked.timer.remainingSec).toBe(473);
+  });
+});
+
+describe("fileSave: save-completion-order race protection (the actual pause-recovery fix)", () => {
+  let fetchCalls;
+  let resolvers;
+  let originalFetch;
+
+  beforeEach(() => {
+    fetchCalls = []; // in send order: { body, resolve }
+    resolvers = [];
+    originalFetch = globalThis.fetch;
+    globalThis.fetch = (url, opts) => {
+      const body = JSON.parse(opts.body);
+      fetchCalls.push({ url, opts, body });
+      return new Promise((resolve) => {
+        resolvers.push(() =>
+          resolve({ ok: true, json: async () => ({ ok: true }) }),
+        );
+      });
+    };
+  });
+
+  afterEach(() => {
+    globalThis.fetch = originalFetch;
+  });
+
+  it("3/6. an older RUNNING save that finishes after a newer PAUSED save is not sent until the paused save's request has completed, and cannot land after it", async () => {
+    const endpoint = "/__test__/race";
+    const runningSnapshot = { tournament: { timer: { status: "running", remainingSec: 900, endsAtMs: 123 } } };
+    const pausedSnapshot = { tournament: { timer: { status: "paused", remainingSec: 899, endsAtMs: null } } };
+
+    fileSave(endpoint, runningSnapshot); // simulates the 2s-interval save, already in flight
+    fileSave(endpoint, pausedSnapshot); // simulates the pause happening moments later
+
+    // Only ONE request has actually been sent -- the paused save was
+    // queued client-side, not fired concurrently. This is the core of the
+    // fix: the server never even sees two in-flight requests to race.
+    expect(fetchCalls.length).toBe(1);
+    expect(fetchCalls[0].body.tournament.timer.status).toBe("running");
+
+    // Resolve the in-flight (running) request "late" -- simulating the
+    // exact real-world trigger (retry-loop backoff under file-lock
+    // contention, thread scheduling, disk latency).
+    resolvers[0]();
+    await Promise.resolve();
+    await Promise.resolve();
+    await Promise.resolve();
+
+    // The queued paused save is sent only now, strictly after the
+    // running save's request completed -- never concurrently with it.
+    expect(fetchCalls.length).toBe(2);
+    expect(fetchCalls[1].body.tournament.timer.status).toBe("paused");
+
+    resolvers[1]();
+    await Promise.resolve();
+
+    // Final state sent to the server is the paused one -- the running
+    // save can never be "last" no matter how long it was delayed,
+    // because it was never allowed to be in flight at the same time.
+    expect(fetchCalls[fetchCalls.length - 1].body.tournament.timer.status).toBe("paused");
+  });
+
+  it("rapid-fire saves while one is in flight coalesce to only the latest snapshot (no request per call)", async () => {
+    const endpoint = "/__test__/coalesce";
+
+    fileSave(endpoint, { tournament: { timer: { status: "running", remainingSec: 100 } } });
+    fileSave(endpoint, { tournament: { timer: { status: "running", remainingSec: 99 } } });
+    fileSave(endpoint, { tournament: { timer: { status: "running", remainingSec: 98 } } });
+    fileSave(endpoint, { tournament: { timer: { status: "paused", remainingSec: 97 } } });
+
+    expect(fetchCalls.length).toBe(1); // only the first is sent immediately
+
+    resolvers[0]();
+    await Promise.resolve();
+    await Promise.resolve();
+    await Promise.resolve();
+
+    // Exactly one follow-up request, carrying the LATEST snapshot -- the
+    // two intermediate ones (99, 98) were coalesced away, not queued
+    // individually.
+    expect(fetchCalls.length).toBe(2);
+    expect(fetchCalls[1].body.tournament.timer.remainingSec).toBe(97);
+    expect(fetchCalls[1].body.tournament.timer.status).toBe("paused");
+  });
+
+  it("uses keepalive so an in-flight save survives the tab closing", () => {
+    const endpoint = "/__test__/keepalive";
+    fileSave(endpoint, { tournament: { timer: { status: "paused", remainingSec: 1 } } });
+    expect(fetchCalls[0].opts.keepalive).toBe(true);
+  });
+});
+
+describe("10. TIMER_TICK does not, on its own, produce extra autosave writes", () => {
+  it("the debounce key App.jsx derives from state excludes remainingSec/endsAtMs, so pure ticking never changes it", () => {
+    // Mirrors App.jsx's debounceKey construction exactly (see src/App.jsx).
+    // If this ever starts including timer.remainingSec/endsAtMs, ordinary
+    // running would re-fire the 500ms debounce on nearly every tick --
+    // this test exists to catch that regression.
+    const debounceKeyOf = (s) =>
+      JSON.stringify([
+        s.title, s.buyInValue, s.rebuyValue, s.buyIns, s.rebuys,
+        s.prize, s.blinds, s.currentRoundIndex,
+      ]);
+
+    let state = reducer(baseState({ timer: { status: "running", remainingSec: 100, endsAtMs: 50_000, lastTickMs: null } }), {
+      type: "TIMER_START",
+      nowMs: 0,
+    });
+    const keyBefore = debounceKeyOf(state);
+
+    for (let ms = 250; ms <= 5000; ms += 250) {
+      state = reducer(state, { type: "TIMER_TICK", nowMs: ms });
+    }
+
+    expect(state.timer.remainingSec).not.toBe(100); // ticking did change the timer...
+    expect(debounceKeyOf(state)).toBe(keyBefore); // ...but not the debounce key
   });
 });
